@@ -147,6 +147,81 @@ public class VirtualConnectionRenderer {
         }
     }
 
+    public void drawPath(WorldPanelCanvasGraphics graphics, int clipX, int clipY) {
+
+        int frameIndex = !animated ? 0 : (int) (AnimationTickHolder.getRenderTime() / FRAME_TIME) % N_FRAMES;
+
+        // Walk every line of the path.
+        for (int i = 0; i < path.size() - 1; i++) {
+            Vector2ic a = path.get(i), b = path.get(i + 1);
+
+            Direction direction;
+            if      (a.y() > b.y()) direction = Direction.UP;
+            else if (a.y() < b.y()) direction = Direction.DOWN;
+            else if (a.x() > b.x()) direction = Direction.LEFT;
+            else if (a.x() < b.x()) direction = Direction.RIGHT;
+            else continue;
+
+            boolean tail = i == 0;
+            boolean head = i == path.size() - 2;
+
+            // Pixel coordinates of cell centers
+            Vector2i pa = new Vector2i(a).mul(CELL).add(CELL/2, CELL/2);
+            Vector2i pb = new Vector2i(b).mul(CELL).add(CELL/2, CELL/2);
+
+            // Draw line, each line texture has length of half a cell.
+            Vector2i lineStart = new Vector2i(pa).add(direction.vector(CELL/4));
+            Vector2i lineEnd   = new Vector2i(pb).sub(direction.vector(CELL/4));
+
+            if (tail) lineStart.add(direction.vector(CELL/2));
+            if (head)   lineEnd.sub(direction.vector(CELL/2));
+
+            int lineLength = (lineEnd.x - lineStart.x) * direction.vector.x()
+                    + (lineEnd.y - lineStart.y) * direction.vector.y();
+            if (lineLength >= 0) {
+                Vector2i lineMin = new Vector2i(lineStart).min(lineEnd);
+                Vector2i lineSize = new Vector2i(lineStart).sub(lineEnd).absolute();
+
+                var lineSt = Subtexture.LINES.get(direction);
+                drawWorld(graphics, lineSt, frameIndex, clipX, clipY,
+                        lineMin.x - lineSt.w/2, lineMin.y - lineSt.h/2,
+                        lineSize.x + lineSt.w, lineSize.y + lineSt.h);
+            }
+
+            // Draw tail and head
+            if (tail) {
+                var tailSt = Subtexture.TAILS.get(direction);
+                drawWorld(graphics, tailSt, frameIndex, clipX, clipY,
+                        pa.x - tailSt.ox, pa.y - tailSt.oy,
+                        tailSt.w, tailSt.h);
+            }
+            if (head) {
+                var headSt = Subtexture.HEADS.get(direction);
+                drawWorld(graphics, headSt, frameIndex, clipX, clipY,
+                        pb.x - headSt.ox, pb.y - headSt.oy,
+                        headSt.w, headSt.h);
+            }
+        }
+    }
+
+
+    private void drawWorld(WorldPanelCanvasGraphics gfx, Subtexture st, int frame, int clipX, int clipY,
+                           int x, int y, int width, int height) {
+        ResourceLocation texture = animated ? TEX_ANIMATED : TEX_STATIC;
+        float textureHeight = animated ? 128f : 16f;
+        for (int dy = 0; dy < height; dy += st.h) for (int dx = 0; dx < width; dx += st.w) {
+            float x0 = Math.max(x + dx, clipX), y0 = Math.max(y + dy, clipY);
+            float x1 = Math.min(Math.min(x + dx + st.w, x + width), clipX + 64);
+            float y1 = Math.min(Math.min(y + dy + st.h, y + height), clipY + 64);
+            if (x1 <= x0 || y1 <= y0) continue;
+            gfx.quad(width > height ? PanelSurface.CABLE_HORIZONTAL : PanelSurface.CABLE_VERTICAL,
+                    texture, x0, y0, x1, y1,
+                    (st.u + x0 - x - dx) / 16f, (st.v + frame * 16 + y0 - y - dy) / textureHeight,
+                    (st.u + x1 - x - dx) / 16f, (st.v + frame * 16 + y1 - y - dy) / textureHeight,
+                    color, gfx.light());
+        }
+    }
+
     private TiledSpriteRenderer getSpriteRenderer(Subtexture st, int frameIndex) {
         return TiledSpriteRenderer.create(
                 animated ? TEX_ANIMATED : TEX_STATIC,

@@ -46,6 +46,8 @@ public record RetuneCarriedPacket(boolean clear, @Nullable UUID network) impleme
     public static void handle(RetuneCarriedPacket packet, net.neoforged.neoforge.network.handling.IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
+            if (!(player.containerMenu instanceof io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu menu)
+                    || io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, menu.controllerPos) == null) return;
             ItemStack carried = player.containerMenu.getCarried();
             if (!ComponentRegistry.containsNetworkItem(carried)) return;   // never retune a networkless item (link)
             apply(carried, packet.clear ? null : packet.network);

@@ -38,7 +38,8 @@ public record RequestGaugePromiseInfoPacket(BlockPos pos, VirtualComponentPositi
     public static void handle(RequestGaugePromiseInfoPacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
-            if (!(player.level().getBlockEntity(packet.pos()) instanceof FactoryControllerBlockEntity be)) return;
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.pos());
+            if (be == null) return;
             if (!(be.components.get(packet.gaugePos()) instanceof VirtualGaugeBehaviour g) || g.gaugeId == null) return;
             long now = player.level().getGameTime();
             // Route through the gauge so a fluid gauge reports its fluid-backend counts, not the item cache.

@@ -118,7 +118,8 @@ public record ConfigureRecipePacket(BlockPos pos, VirtualComponentPosition panel
     public static void handle(ConfigureRecipePacket packet, net.neoforged.neoforge.network.handling.IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
-            if (!(player.level().getBlockEntity(packet.pos()) instanceof FactoryControllerBlockEntity be)) return;
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.pos());
+            if (be == null) return;
             // One amount per connection (the UI owns the slot split). Last write wins if a position repeats.
             Map<VirtualComponentPosition, Integer> inputs = new LinkedHashMap<>();
             Map<VirtualComponentPosition, Boolean> exclusions = new LinkedHashMap<>();

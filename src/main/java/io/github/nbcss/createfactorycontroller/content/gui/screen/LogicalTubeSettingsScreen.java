@@ -15,7 +15,7 @@ import io.github.nbcss.createfactorycontroller.content.component.VirtualComponen
 import io.github.nbcss.createfactorycontroller.content.component.VirtualComponentPosition;
 import io.github.nbcss.createfactorycontroller.content.component.connection.Connection;
 import io.github.nbcss.createfactorycontroller.content.component.connection.RedstoneConnection;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.HelpButton;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.InteractiveAreaWidget;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.VirtualComponentWidget;
@@ -67,7 +67,7 @@ public class LogicalTubeSettingsScreen extends AbstractSimiContainerScreen<Facto
     private static final int TUBE_COL = COLS_PER_SIDE, MID_ROW = 1;
     private static final int MAX_PER_SIDE = COLS_PER_SIDE * 2;    // 5 cols × 2 rows
 
-    private final FactoryControllerScreen controller;
+    private final ControllerEditorHost controller;
     private final VirtualComponentPosition tubePos;
 
     private final ComponentRenderingHelper componentRenderingHelper = new ComponentRenderingHelper();
@@ -79,7 +79,7 @@ public class LogicalTubeSettingsScreen extends AbstractSimiContainerScreen<Facto
     private final java.util.EnumMap<LogicalTubeBehaviour.Mode, TooltipIconButton> modeButtons =
             new java.util.EnumMap<>(LogicalTubeBehaviour.Mode.class);
 
-    public LogicalTubeSettingsScreen(FactoryControllerScreen controller, VirtualComponentPosition tubePos) {
+    public LogicalTubeSettingsScreen(ControllerEditorHost controller, VirtualComponentPosition tubePos) {
         super(controller.getMenu(), Minecraft.getInstance().player.getInventory(),
               Component.translatable("createfactorycontroller.gui.logical_tube_settings"));
         this.controller = controller;
@@ -100,12 +100,12 @@ public class LogicalTubeSettingsScreen extends AbstractSimiContainerScreen<Facto
         menu.repositionSlots(-2000, -2000, false);
 
         relocateButton = new TooltipIconButton(panelX + 8, panelY + 79, AllIcons.I_MOVE_GAUGE);
-        relocateButton.withCallback(() -> { controller.beginRelocateMode(tubePos); Minecraft.getInstance().setScreen(controller); });
+        relocateButton.withCallback(() -> { controller.beginRelocateMode(tubePos); Minecraft.getInstance().setScreen(controller.returnScreen()); });
         relocateButton.setToolTip(Component.translatable("createfactorycontroller.gui.action_relocate"));
         addWidget(relocateButton);
 
         addConnectionButton = new TooltipIconButton(panelX + 30, panelY + 79, AllIcons.I_ADD);
-        addConnectionButton.withCallback(() -> { controller.beginConnectionMode(tubePos); Minecraft.getInstance().setScreen(controller); });
+        addConnectionButton.withCallback(() -> { controller.beginConnectionMode(tubePos); Minecraft.getInstance().setScreen(controller.returnScreen()); });
         addConnectionButton.setToolTip(CreateLang.translate("gui.factory_panel.connect_input").component());
         addWidget(addConnectionButton);
 
@@ -125,7 +125,7 @@ public class LogicalTubeSettingsScreen extends AbstractSimiContainerScreen<Facto
         }
 
         confirmButton = new TooltipIconButton(panelX + 167, panelY + 79, AllIcons.I_CONFIRM);
-        confirmButton.withCallback(() -> Minecraft.getInstance().setScreen(controller));
+        confirmButton.withCallback(() -> Minecraft.getInstance().setScreen(controller.returnScreen()));
         confirmButton.setToolTip(CreateLang.translate("gui.factory_panel.save_and_close").component());
         addWidget(confirmButton);
 
@@ -252,7 +252,7 @@ public class LogicalTubeSettingsScreen extends AbstractSimiContainerScreen<Facto
 
     @Override
     protected void renderBg(@NotNull GuiGraphics gfx, float partialTick, int mouseX, int mouseY) {
-        if (tube() == null) { Minecraft.getInstance().setScreen(controller); return; }   // tube removed externally
+        if (tube() == null) { Minecraft.getInstance().setScreen(controller.returnScreen()); return; }   // tube removed externally
         controller.renderBoard(gfx, -1, -1, partialTick, true);
 
         RenderSystem.enableBlend();
@@ -439,7 +439,7 @@ public class LogicalTubeSettingsScreen extends AbstractSimiContainerScreen<Facto
 
     @Override
     public void onClose() {
-        Minecraft.getInstance().setScreen(controller);
+        Minecraft.getInstance().setScreen(controller.returnScreen());
     }
 
     @Override

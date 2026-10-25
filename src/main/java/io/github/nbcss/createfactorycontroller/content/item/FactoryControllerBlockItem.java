@@ -16,6 +16,11 @@ import java.util.List;
  * it shows a gold "Configured Controller" tooltip line and glows — mirroring Create's tuned Factory Gauge item.
  */
 public class FactoryControllerBlockItem extends BlockItem {
+    @Override
+    protected boolean canPlace(net.minecraft.world.item.context.BlockPlaceContext context, net.minecraft.world.level.block.state.BlockState state) {
+        return super.canPlace(context, state) && io.github.nbcss.createfactorycontroller.content.block.DashboardAssemblyManager
+                .canPlace(context.getLevel(), context.getClickedPos(), state, true, context.getPlayer());
+    }
 
     public FactoryControllerBlockItem(Block block, Properties properties) {
         super(block, properties);

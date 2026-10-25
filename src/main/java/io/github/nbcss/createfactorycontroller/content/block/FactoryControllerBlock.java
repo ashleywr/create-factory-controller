@@ -49,7 +49,7 @@ public class FactoryControllerBlock extends HorizontalDirectionalBlock
     /** Render-only flag: true while the block receives a redstone signal, selecting the powered model. */
     public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 
-    private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 14, 16);
+    private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 16, 16);
 
     public FactoryControllerBlock(Properties properties) {
         super(properties);
@@ -81,7 +81,7 @@ public class FactoryControllerBlock extends HorizontalDirectionalBlock
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         boolean powered = context.getLevel().hasNeighborSignal(context.getClickedPos());
         return defaultBlockState()
-            .setValue(FACING, context.getHorizontalDirection().getOpposite())
+            .setValue(FACING, DashboardAssemblyManager.placementFacing(context))
             .setValue(POWERED, powered);
     }
 
@@ -105,6 +105,7 @@ public class FactoryControllerBlock extends HorizontalDirectionalBlock
                                    @NotNull Block neighborBlock, @NotNull BlockPos neighborPos,
                                    boolean movedByPiston) {
         if (level.isClientSide()) return;
+        DashboardAssemblyManager.schedule(level, pos);
         // Keep the render-only POWERED state in sync (vanilla syncs the blockstate to clients and picks
         // the matching model); the BE handles the request-pausing logic separately.
         boolean powered = level.hasNeighborSignal(pos);
@@ -122,6 +123,7 @@ public class FactoryControllerBlock extends HorizontalDirectionalBlock
         if (!movedByPiston && !state.is(newState.getBlock()))
             withBlockEntityDo(level, pos, FactoryControllerBlockEntity::abortAllTasks);
         IBE.onRemove(state, level, pos, newState);
+        DashboardAssemblyManager.schedule(level, pos);
     }
 
     /** Preserve mode: the controller drops a single item carrying the board setup instead of the gauges. */

@@ -11,7 +11,7 @@ import io.github.nbcss.createfactorycontroller.content.component.connection.Conn
 import io.github.nbcss.createfactorycontroller.content.component.connection.NumberConnection;
 import io.github.nbcss.createfactorycontroller.content.gui.screen.ArithmeticTubeSettingsScreen;
 import io.github.nbcss.createfactorycontroller.content.gui.screen.ConnectionPathResolver;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.helper.NumberFormatter;
 import io.github.nbcss.createfactorycontroller.content.helper.TooltipBuilder;
 import io.github.nbcss.createfactorycontroller.content.packet.RemoveComponentPacket;
@@ -19,7 +19,8 @@ import io.github.nbcss.createfactorycontroller.content.render.BatchedBlitter;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.nbcss.createfactorycontroller.content.render.PanelCanvasGraphics;
+import io.github.nbcss.createfactorycontroller.content.render.PanelSurface;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -57,10 +58,12 @@ public record VirtualArithmeticTubeWidget(ArithmeticTubeBehaviour behaviour) imp
     /** A connection-carrying face of the tube. {@code rotation} rotates the UP-oriented strip sprite (clockwise,
      *  {@code Axis.ZP}) onto this face. */
     private enum Face {
-        UP(0), RIGHT(90), DOWN(180), LEFT(270);
+        UP(0, PanelSurface.DETAIL_UP), RIGHT(90, PanelSurface.DETAIL_RIGHT),
+        DOWN(180, PanelSurface.DETAIL_DOWN), LEFT(270, PanelSurface.DETAIL_LEFT);
         static final Face[] VALUES = values();
         final float rotation;
-        Face(float rotation) { this.rotation = rotation; }
+        final PanelSurface surface;
+        Face(float rotation, PanelSurface surface) { this.rotation = rotation; this.surface = surface; }
     }
 
     @Override
@@ -82,35 +85,36 @@ public record VirtualArithmeticTubeWidget(ArithmeticTubeBehaviour behaviour) imp
 
     @Override
     public void renderBack(RenderingParameters params) {
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         int x0 = position().x() * CELL, y0 = position().y() * CELL;
-        BatchedBlitter.forSprite(sprite("back")).blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+        gfx.sprite(PanelSurface.BACKPLATE, sprite("back"), x0, y0, CELL, CELL, 0xFFFFFFFF, false);
     }
 
     @Override
     public void renderFront(RenderingParameters params) {
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         int x0 = position().x() * CELL, y0 = position().y() * CELL;
-        BatchedBlitter.forSprite(sprite("front")).blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
-        if (behaviour.getOperator().arity() == ArithmeticOperator.Arity.BINARY)
+        gfx.sprite(PanelSurface.FACE, sprite("front"), x0, y0, CELL, CELL, 0xFFFFFFFF, false);
+        if (gfx.detail() == io.github.nbcss.createfactorycontroller.content.render.DashboardLod.FULL
+                && behaviour.getOperator().arity() == ArithmeticOperator.Arity.BINARY)
             renderStrips(gfx, x0, y0, params.occupiedCells());
-        renderOperatorIcon(gfx, x0, y0);
+        if (gfx.detail() == io.github.nbcss.createfactorycontroller.content.render.DashboardLod.FULL) renderOperatorIcon(gfx, x0, y0);
     }
 
     /** Placement/relocate preview: sprites + operator icon only. */
     @Override
     public void renderGhost(RenderingParameters params) {
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         int x0 = position().x() * CELL, y0 = position().y() * CELL;
-        BatchedBlitter.forSprite(sprite("back")).blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
-        BatchedBlitter.forSprite(sprite("front")).blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+        gfx.sprite(PanelSurface.BACKPLATE, sprite("back"), x0, y0, CELL, CELL, 0xFFFFFFFF, false);
+        gfx.sprite(PanelSurface.FACE, sprite("front"), x0, y0, CELL, CELL, 0xFFFFFFFF, false);
         renderOperatorIcon(gfx, x0, y0);
     }
 
     /**
      * Draws a coloured strip on each face that has incoming connections
      */
-    private void renderStrips(GuiGraphics gfx, int x0, int y0, Set<VirtualComponentPosition> occupied) {
+    private void renderStrips(PanelCanvasGraphics gfx, int x0, int y0, Set<VirtualComponentPosition> occupied) {
         boolean[] primary = new boolean[Face.VALUES.length];
         boolean[] secondary = new boolean[Face.VALUES.length];
         for (Connection c : behaviour.incomingConnections(NumberConnection.TYPE)) {
@@ -138,24 +142,21 @@ public record VirtualArithmeticTubeWidget(ArithmeticTubeBehaviour behaviour) imp
     }
 
     /** Blits the 16×8 UP-oriented strip sprite rotated onto {@code face}. */
-    private void renderStrip(GuiGraphics gfx, int x0, int y0, Face face, String spriteName) {
+    private void renderStrip(PanelCanvasGraphics gfx, int x0, int y0, Face face, String spriteName) {
         gfx.pose().pushPose();
         gfx.pose().translate(x0 + CELL / 2f, y0 + CELL / 2f, 0);
         gfx.pose().mulPose(Axis.ZP.rotationDegrees(face.rotation));
-        BatchedBlitter.forSprite(sprite(spriteName))
-                .blit(gfx.bufferSource(), gfx.pose(), -CELL / 2, -CELL / 2, CELL, STRIP_HEIGHT);
+        gfx.sprite(face.surface, sprite(spriteName), -CELL / 2, -CELL / 2, CELL, STRIP_HEIGHT, 0xFFFFFFFF, false);
         gfx.pose().popPose();
     }
 
-    private void renderOperatorIcon(GuiGraphics gfx, int x0, int y0) {
+    private void renderOperatorIcon(PanelCanvasGraphics gfx, int x0, int y0) {
         String icon = behaviour.getOperator().iconName();
         gfx.pose().pushPose();
         gfx.pose().translate(x0 + (CELL - ICON_DRAW) / 2f, y0 + (CELL - ICON_DRAW) / 2f, 0);
         gfx.pose().scale(0.5f, 0.5f, 1f);
-        BatchedBlitter.forSprite(OPERATOR_ICONS.withSuffix(icon + "_border")).setColorARGB(ICON_BORDER_COLOR)
-                .blit(gfx.bufferSource(), gfx.pose(), 0, 0, 15, 15);
-        BatchedBlitter.forSprite(OPERATOR_ICONS.withSuffix(icon))
-                .blit(gfx.bufferSource(), gfx.pose(), 0, 0, 15, 15);
+        gfx.sprite(PanelSurface.SYMBOL_BACKGROUND, OPERATOR_ICONS.withSuffix(icon + "_border"), 0, 0, 15, 15, ICON_BORDER_COLOR, false);
+        gfx.sprite(PanelSurface.SYMBOL, OPERATOR_ICONS.withSuffix(icon), 0, 0, 15, 15, 0xFFFFFFFF, false);
         gfx.pose().popPose();
     }
 
@@ -165,7 +166,7 @@ public record VirtualArithmeticTubeWidget(ArithmeticTubeBehaviour behaviour) imp
         String label = NumberFormatter.formatCompact(behaviour.getOutput());
         if (label.isEmpty()) return;
 
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         int x0 = position().x() * CELL, y0 = position().y() * CELL;
         Font font = Minecraft.getInstance().font;
         int w = font.width(label);
@@ -174,11 +175,11 @@ public record VirtualArithmeticTubeWidget(ArithmeticTubeBehaviour behaviour) imp
                 : LABEL_SCALE;
 
         gfx.pose().pushPose();
-        gfx.pose().translate(x0 + CELL - LABEL_INSET, y0 + CELL - LABEL_INSET, 200);
+        gfx.pose().translate(x0 + CELL - LABEL_INSET, y0 + CELL - LABEL_INSET, gfx.labelDepth());
         gfx.pose().scale(scale, scale, 1);
         Matrix4f matrix = gfx.pose().last().pose();
         font.drawInBatch8xOutline(Component.literal(label).getVisualOrderText(), -w, -font.lineHeight,
-                0xFFFFFFFF, 0x000000, matrix, gfx.bufferSource(), LightTexture.FULL_BRIGHT);
+                0xFFFFFFFF, 0x000000, matrix, gfx.bufferSource(), gfx.labelLight());
         gfx.pose().popPose();
     }
 
@@ -204,7 +205,7 @@ public record VirtualArithmeticTubeWidget(ArithmeticTubeBehaviour behaviour) imp
     }
 
     @Override
-    public boolean onClick(FactoryControllerScreen screen, ItemStack carried, double mouseX, double mouseY, int button) {
+    public boolean onClick(ControllerEditorHost screen, ItemStack carried, double mouseX, double mouseY, int button) {
         if (!carried.isEmpty()) return false;
         screen.clearSelection();
         Minecraft.getInstance().setScreen(new ArithmeticTubeSettingsScreen(screen, behaviour.position()));
@@ -212,7 +213,7 @@ public record VirtualArithmeticTubeWidget(ArithmeticTubeBehaviour behaviour) imp
     }
 
     @Override
-    public void remove(FactoryControllerScreen screen) {
+    public void remove(ControllerEditorHost screen) {
         PacketDistributor.sendToServer(new RemoveComponentPacket(screen.getMenu().controllerPos, behaviour.position()));
     }
 }

@@ -43,6 +43,62 @@ This mod does **not**:
 
 - Manage an external wall of factory gauges.
 
+## In-world industrial dashboard
+
+The controller now renders its instruments on a solid cabinet face, visible without opening a menu.
+Place **Factory Dashboard Panels** edge-to-edge beside, above, or below it to enlarge the surface.
+Panels inherit the neighboring cabinet's orientation; perpendicular faces and back-to-back cabinets stay separate.
+One controller owns the entire assembly. Joining two controllers is rejected before an item is consumed.
+The default limit is 64 blocks within an 8×8 envelope, configurable on the server.
+
+Each block displays a 4×4 area of the logical board. Expansion never shifts existing instruments.
+Removing a panel hides its instruments without deleting them or stopping their operation; replacing it reveals them again.
+Irregular shapes are supported, with cables routed over existing faces rather than through gaps.
+The **Display area** button changes the assembly's shared logical origin, while full-editor pan and zoom remain local.
+
+Right-click any connected cabinet to edit in world. Click an instrument to configure it, use the inventory drawer
+to attach components, Ctrl-drag to select, C to connect, Q to relocate, F to change mode, R to change bends,
+and Shift-click to remove. Escape cancels a tool before closing the session. Existing configuration and blueprint
+forms remain conventional screens. **Full editor** opens the original dashboard; **World editor** returns to the cabinet.
+The client configuration can also make the full editor the default.
+
+Cabinets use loaded-chunk-only discovery, persisted assembly identities, nearby read-only snapshots,
+and menu/session validation for edits. Server and client must use the same dashboard protocol version.
+
+### Dashboard rendering
+
+Instrument bezels use a shared baked partial model and Create/Catnip's reload-aware buffer cache.
+Bodies are drawn as a separate pass to avoid switching model/sprite buffers per instrument.
+Widgets explicitly name `PanelSurface` layers for backplates, wires, faces, symbols, lights, items,
+selection and labels; the world backend owns their physical depths and lit/emissive materials.
+Placement and move previews reuse the same surfaces above the live layer stack.
+New overlapping artwork must use distinct surfaces, not draw-order assumptions or local Z offsets.
+The menu backend ignores world depths and keeps the existing 2D composition.
+
+World detail is selected once per cabinet/frame from the projected size of a quarter-block instrument
+at the assembly center (physical screen pixels, actual projection/FOV and grazing angle, not GUI scale).
+Initial tiers are **full** at 24+ pixels, **simplified faces/status lights** at 10–24 pixels, and a
+**quiet per-tile status strip** below 10 pixels. A 15% hysteresis band prevents repeated switching near
+thresholds; tiers change discretely rather than blending overlapping depth-tested surfaces.
+Nearby cabinets being edited retain full detail, and placement previews and the conventional editor
+always remain full detail. `dashboardLod = false` in the client config disables visual simplification.
+This does not change controller operation, synchronization payloads or the subscription radius.
+The range gate is shared by the whole cabinet, measured from its nearest member, while chunk/frustum
+culling stays tile-sized. Unsynced/unavailable boards still show their existing warning indicator.
+
+Power-of-two instrument artwork is also stitched into the block atlas for world rendering, using
+Create's mipmapped entity materials. The original GUI sprites are unchanged. Near-only 15×15 operator
+icons and 16×8 strips stay on the GUI atlas so they cannot reduce the block atlas's mip level;
+custom/compat artwork falls back to its existing GUI sprite. World sprites are resolved each draw
+through the current atlas, not retained across resource reloads. New world atlas entries must have
+dimensions divisible by 16 (covered by the atlas regression test).
+
+### Dashboard tests
+
+Geometry, sync, renderer-surface, projected-LoD/hysteresis and atlas regression tests: `./gradlew test`.
+Dedicated-server assembly tests: `./gradlew runGameTestServer -PcleanRuntime -PdashboardGameTests`.
+Game-test fixtures live in a separate source set and are not packaged in the mod JAR.
+
 ## Bundled Mods
 The following mods are bundled in Factory Controller mod release.
 
@@ -108,3 +164,31 @@ Translations:
 <p>For large feature, AI's solution is problematic; it can only use for prototyping but also enable me to understand the underlying technical limitation before spend large amount of time in development. Meanwhile, AI is also used in design improvement; it reviews my code &amp; design and may sometime point me a new direction of solving problems, which could be more efficient and optimized. AI's suggestion may not always be true, but it is so valuable to get another technical point of view during the development, to make the mod more optimized and allow me to identify bugs early. In fact, I found that this collaboration pattern significantly reduced the bugs produced, compare to my previous mod; I received almost no bug reports during the first month of release, which is hard to believe when put this amount of features into one system.</p>
 <p>In this case, AI has improved the quality of the mod and my productivity, instead of produced "AI slop mod". In fact, I am more worry about the growing "AI hate" in the community. If people keep getting pissed by any AI involve project regardless how AI get used, fewer developers would decide to disclose the use of AI, and player will have to facing more mods without labeled how AI get used.</p>
 </details>
+
+<!-- ashley-release-information -->
+
+## Ashley's builds
+
+This is an unofficial maintenance fork. Original authors retain ownership and credit. See the [upstream project](https://github.com/nbcss/create-factory-controller) for the original mod. Local changes do not imply upstream endorsement.
+
+Licensing: **MIT**. Existing license files, copyright notices, attribution and any separate asset terms remain in force. This fork does not relicense upstream work.
+
+Provided **AS IS**, without warranty of any kind. Maintenance, updates and support are best effort; compatibility with every modpack is not guaranteed.
+
+### Downloads and installation
+
+Download a runtime `.jar` from [GitHub Releases](https://github.com/ashleywr/create-factory-controller/releases). Use the Minecraft version and loader named in that release and install its required dependencies. Do not install `-sources`, `-dev`, `-slim`, `-common` or test JARs as the mod.
+
+Close Minecraft, back up your world, and place the matching runtime JAR in the instance's `mods/` directory. Replace older versions of this same mod rather than loading duplicates. For content mods, install matching versions on the server and its clients unless the release explicitly says client-only or server-only.
+
+### Building and reporting problems
+
+Use Java 21 and the checked-in Gradle wrapper:
+
+```powershell
+.\gradlew.bat build
+```
+
+Build outputs are under `build/libs/` or each loader subproject's `build/libs/`. Some projects require the local development dependencies described above; those dependencies are not included in the download.
+
+For a problem report, include the exact release filename, Minecraft and loader versions, relevant mod versions, `logs/latest.log`, and a crash report if one was written. Remove private information before sharing logs. Remove the JAR to uninstall; worlds containing this mod's blocks, entities or world generation may require restoring a backup.

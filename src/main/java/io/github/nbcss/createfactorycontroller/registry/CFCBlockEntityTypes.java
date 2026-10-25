@@ -2,6 +2,7 @@ package io.github.nbcss.createfactorycontroller.registry;
 
 import io.github.nbcss.createfactorycontroller.CreateFactoryController;
 import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerBlockEntity;
+import io.github.nbcss.createfactorycontroller.content.block.FactoryDashboardPanelBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -16,6 +17,10 @@ public final class CFCBlockEntityTypes {
             FACTORY_CONTROLLER = BLOCK_ENTITY_TYPES.register("factory_controller", () ->
                     BlockEntityType.Builder.of(FactoryControllerBlockEntity::new,
                             CFCBlocks.FACTORY_CONTROLLER.get()).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<FactoryDashboardPanelBlockEntity>>
+            FACTORY_DASHBOARD_PANEL = BLOCK_ENTITY_TYPES.register("factory_dashboard_panel", () ->
+            BlockEntityType.Builder.of(FactoryDashboardPanelBlockEntity::new, CFCBlocks.FACTORY_DASHBOARD_PANEL.get()).build(null));
 
     private CFCBlockEntityTypes() {}
 

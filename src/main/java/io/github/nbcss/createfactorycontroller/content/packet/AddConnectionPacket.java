@@ -41,7 +41,8 @@ public record AddConnectionPacket(BlockPos pos, String connectionType,
     public static void handle(AddConnectionPacket packet, net.neoforged.neoforge.network.handling.IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
-            if (!(player.level().getBlockEntity(packet.pos()) instanceof FactoryControllerBlockEntity be)) return;
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.pos());
+            if (be == null) return;
             be.addConnection(packet.connectionType(), packet.source(), packet.sink(), packet.arrowBendMode());
         });
     }

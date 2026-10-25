@@ -38,7 +38,8 @@ public record SetGaugeRequestIntervalPacket(BlockPos pos, VirtualComponentPositi
     public static void handle(SetGaugeRequestIntervalPacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
-            if (!(player.level().getBlockEntity(packet.pos()) instanceof FactoryControllerBlockEntity be)) return;
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.pos());
+            if (be == null) return;
             be.setGaugeRequestInterval(packet.gaugePos(), packet.customRequestTimer());
         });
     }

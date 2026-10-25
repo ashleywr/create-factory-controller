@@ -8,7 +8,7 @@ import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMe
 import io.github.nbcss.createfactorycontroller.content.component.VirtualRedstoneLinkBehaviour;
 import io.github.nbcss.createfactorycontroller.content.component.connection.RedstoneConnection;
 import io.github.nbcss.createfactorycontroller.content.gui.screen.ConfigureRedstoneLinkScreen;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.helper.TooltipBuilder;
 import io.github.nbcss.createfactorycontroller.content.packet.ConfigureRedstoneLinkPacket;
 import io.github.nbcss.createfactorycontroller.content.packet.RemoveComponentPacket;
@@ -16,7 +16,8 @@ import io.github.nbcss.createfactorycontroller.content.render.BatchedBlitter;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.nbcss.createfactorycontroller.content.render.PanelCanvasGraphics;
+import io.github.nbcss.createfactorycontroller.content.render.PanelSurface;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -54,25 +55,26 @@ public record VirtualRedstoneLinkWidget(VirtualRedstoneLinkBehaviour behaviour) 
 
     @Override
     public void renderBack(RenderingParameters params) {
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         int x0 = position().x() * CELL, y0 = position().y() * CELL;
-        BatchedBlitter.forSprite(sprite("back")).blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+        gfx.sprite(PanelSurface.BACKPLATE, sprite("back"), x0, y0, CELL, CELL, 0xFFFFFFFF, false);
         if (behaviour.isPowered())
-            BatchedBlitter.forSprite(sprite("back_power"))
-                    .blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+            gfx.sprite(PanelSurface.BACKPLATE_DETAIL, sprite("back_power"), x0, y0, CELL, CELL, 0xFFFFFFFF, true);
     }
 
     @Override
     public void renderFront(RenderingParameters params) {
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         int x0 = position().x() * CELL, y0 = position().y() * CELL;
-        BatchedBlitter.forSprite(sprite("front")).blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+        gfx.sprite(PanelSurface.FACE, sprite("front"), x0, y0, CELL, CELL, 0xFFFFFFFF, false);
         if (behaviour.isPowered())
-            BatchedBlitter.forSprite(sprite("front_power"))
-                    .blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+            gfx.sprite(PanelSurface.DETAIL_UP, sprite("front_power"), x0, y0, CELL, CELL, 0xFFFFFFFF, true);
         String path = (behaviour.receive ? "receiver_" : "transmitter_") +
                 (behaviour.isPowered() ? "on" : "off");
-        BatchedBlitter.forSprite(sprite(path)).blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+        gfx.sprite(PanelSurface.SYMBOL, sprite(path), x0, y0, CELL, CELL, 0xFFFFFFFF, false);
+        if (gfx.detail() == io.github.nbcss.createfactorycontroller.content.render.DashboardLod.SIMPLIFIED)
+            gfx.fill(PanelSurface.INDICATOR, x0 + 5, y0 + 6, x0 + 11, y0 + 10,
+                    behaviour.isPowered() ? 0xFFFF5555 : 0xFF66756E);
 
         // The two 6x6 frequency icons: Red top, Blue bottom.
         renderFreqIcon(gfx, behaviour.redFreq, x0 + 5, y0 + 2);
@@ -83,15 +85,15 @@ public record VirtualRedstoneLinkWidget(VirtualRedstoneLinkBehaviour behaviour) 
         if (!cursor.isEmpty() && params.renderOverlay()) {
             boolean top = params.mousePosition().y < y0 + CELL / 2.0;
             int hy = top ? y0 : y0 + CELL / 2;
-            gfx.fill(x0, hy, x0 + CELL, hy + CELL / 2, top ? 0x80FF5555 : 0x805599FF);
+            gfx.fill(PanelSurface.HOVER, x0, hy, x0 + CELL, hy + CELL / 2, top ? 0x80FF5555 : 0x805599FF);
         }
     }
 
-    private static void renderFreqIcon(GuiGraphics gfx, ItemStack stack, int x, int y) {
+    private static void renderFreqIcon(PanelCanvasGraphics gfx, ItemStack stack, int x, int y) {
         if (stack.isEmpty()) return;
         gfx.pose().pushPose();
         gfx.pose().translate(x, y, 0);
-        gfx.pose().scale(0.375f, 0.375f, 0.375f);
+        gfx.scaleItemIcon(0.375f);
         gfx.renderItem(stack, 0, 0);
         gfx.pose().popPose();
     }
@@ -100,18 +102,18 @@ public record VirtualRedstoneLinkWidget(VirtualRedstoneLinkBehaviour behaviour) 
     public void renderOverlay(RenderingParameters params) {
         if (!ClientConfig.showRedstoneLinkSignalStrengthLabel() || !params.renderOverlay()) return;
 
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         int x0 = position().x() * CELL, y0 = position().y() * CELL;
         String label = Integer.toString(behaviour.strength);
         Font font = Minecraft.getInstance().font;
         int width = font.width(label);
 
         gfx.pose().pushPose();
-        gfx.pose().translate(x0 + CELL - LABEL_INSET, y0 + CELL - LABEL_INSET, 200);
+        gfx.pose().translate(x0 + CELL - LABEL_INSET, y0 + CELL - LABEL_INSET, gfx.labelDepth());
         gfx.pose().scale(LABEL_SCALE, LABEL_SCALE, 1);
         Matrix4f matrix = gfx.pose().last().pose();
         font.drawInBatch8xOutline(Component.literal(label).getVisualOrderText(), -width, -font.lineHeight,
-                LABEL_COLOR, 0x000000, matrix, gfx.bufferSource(), LightTexture.FULL_BRIGHT);
+                LABEL_COLOR, 0x000000, matrix, gfx.bufferSource(), gfx.labelLight());
         gfx.pose().popPose();
     }
 
@@ -133,7 +135,7 @@ public record VirtualRedstoneLinkWidget(VirtualRedstoneLinkBehaviour behaviour) 
     }
 
     @Override
-    public boolean onClick(FactoryControllerScreen screen, ItemStack carried, double mouseX, double mouseY, int button) {
+    public boolean onClick(ControllerEditorHost screen, ItemStack carried, double mouseX, double mouseY, int button) {
         if (carried.isEmpty()) {                   // empty hand → open the full-config GUI
             screen.clearSelection();   // entering an overlay clears the selection
             Minecraft.getInstance().setScreen(new ConfigureRedstoneLinkScreen(screen, behaviour.position()));
@@ -149,7 +151,7 @@ public record VirtualRedstoneLinkWidget(VirtualRedstoneLinkBehaviour behaviour) 
     }
 
     @Override
-    public void remove(FactoryControllerScreen screen) {
+    public void remove(ControllerEditorHost screen) {
         PacketDistributor.sendToServer(
             new RemoveComponentPacket(screen.getMenu().controllerPos, behaviour.position()));
     }

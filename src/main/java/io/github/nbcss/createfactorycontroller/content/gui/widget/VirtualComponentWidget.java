@@ -4,7 +4,7 @@ import io.github.nbcss.createfactorycontroller.content.component.VirtualComponen
 import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu;
 import io.github.nbcss.createfactorycontroller.content.component.VirtualComponentBehaviour;
 import io.github.nbcss.createfactorycontroller.content.component.connection.Connection;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
@@ -28,8 +28,10 @@ import java.util.List;
  * <li>Overlay: in front of target boxes</li>
  * </ul>
  *
- * <p>The {@code render*} methods are called by the screen during rendering. An implementation may perform rendering
- * to the screen using the vanilla {@link GuiGraphics} {@code params.graphics()} or other methods.</p>
+ * <p>The {@code render*} methods are shared by menu and world rendering. Sprite/fill calls must name a
+ * {@link io.github.nbcss.createfactorycontroller.content.render.PanelSurface}; never implement world layering
+ * by draw order or widget-specific Z translations. The world backend owns surface depth, lighting and materials;
+ * the GUI backend preserves the existing batched 2D composition.</p>
  *
  * <p>An implementation may improve performance with batch rendering.
  * It may write into {@code params.graphics().bufferSource()}, and assume that the calling screen
@@ -82,15 +84,15 @@ public interface VirtualComponentWidget {
 
     /** Handles a left/right click on this component with the given cursor stack (the type-specific interaction:
      *  configure, set filter, open config, …). Returns true if consumed. */
-    boolean onClick(FactoryControllerScreen screen, ItemStack carried, double mouseX, double mouseY, int button);
+    boolean onClick(ControllerEditorHost screen, ItemStack carried, double mouseX, double mouseY, int button);
 
     /** Shift-click: remove this component from the board. */
-    void remove(FactoryControllerScreen screen);
+    void remove(ControllerEditorHost screen);
 
     /** Parameters passed to the rendering methods. */
     interface RenderingParameters {
         /** Vanilla {@link GuiGraphics}. */
-        @Pure GuiGraphics graphics();
+        @Pure io.github.nbcss.createfactorycontroller.content.render.PanelCanvasGraphics graphics();
 
         /** Mouse XY in pixels. NaN if irrelevant or unknown. */
         @Pure Vector2d mousePosition();

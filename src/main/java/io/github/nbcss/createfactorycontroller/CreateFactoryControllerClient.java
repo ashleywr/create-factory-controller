@@ -79,6 +79,7 @@ public class CreateFactoryControllerClient {
             "key.categories.createfactorycontroller");
 
     public CreateFactoryControllerClient(ModContainer container) {
+        io.github.nbcss.createfactorycontroller.content.render.DashboardInstrumentModel.init();
         // Allows NeoForge to create a config screen for this mod's configs.
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
@@ -98,8 +99,44 @@ public class CreateFactoryControllerClient {
 
     @SubscribeEvent
     static void onClientLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        io.github.nbcss.createfactorycontroller.content.client.panel.DashboardRenderDiagnostics.clear();
+        io.github.nbcss.createfactorycontroller.content.client.panel.FactoryControllerClientBoards.clear();
         // Drop the session-only controller camera cache when leaving a world/server.
         FactoryControllerScreen.clearViewCache();
+    }
+
+    @SubscribeEvent
+    static void registerScreens(net.neoforged.neoforge.client.event.RegisterMenuScreensEvent event) {
+        event.<io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu,
+                net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu>>
+                register(CreateFactoryController.FACTORY_CONTROLLER_MENU.get(), (menu, inventory, title) ->
+                ClientConfig.WORLD_DASHBOARD_EDITOR.get()
+                        ? new io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerInteractionScreen(menu, inventory, title)
+                        : new FactoryControllerScreen(menu, inventory, title));
+    }
+
+    @SubscribeEvent
+    static void registerShaders(net.neoforged.neoforge.client.event.RegisterShadersEvent event) {
+        io.github.nbcss.createfactorycontroller.content.render.TiledSpriteRenderer.registerShaders(event);
+    }
+
+    @SubscribeEvent
+    static void registerDashboardRenderers(net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(io.github.nbcss.createfactorycontroller.registry.CFCBlockEntityTypes.FACTORY_CONTROLLER.get(),
+                io.github.nbcss.createfactorycontroller.content.render.FactoryDashboardRenderer::new);
+        event.registerBlockEntityRenderer(io.github.nbcss.createfactorycontroller.registry.CFCBlockEntityTypes.FACTORY_DASHBOARD_PANEL.get(),
+                io.github.nbcss.createfactorycontroller.content.render.FactoryDashboardRenderer::new);
+    }
+
+    @SubscribeEvent
+    static void tickDashboardBoards(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
+        io.github.nbcss.createfactorycontroller.content.client.panel.FactoryControllerClientBoards.tick();
+        io.github.nbcss.createfactorycontroller.content.client.panel.DashboardRenderDiagnostics.tick();
+    }
+
+    @SubscribeEvent
+    static void registerDashboardDiagnosticCommands(net.neoforged.neoforge.client.event.RegisterClientCommandsEvent event) {
+        io.github.nbcss.createfactorycontroller.content.client.panel.DashboardRenderDiagnostics.registerCommands(event);
     }
 
     @SubscribeEvent

@@ -3,14 +3,15 @@ package io.github.nbcss.createfactorycontroller.content.gui.widget;
 import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu;
 import io.github.nbcss.createfactorycontroller.content.component.gauge.LogicalTubeBehaviour;
 import io.github.nbcss.createfactorycontroller.content.component.VirtualComponentPosition;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.gui.screen.LogicalTubeSettingsScreen;
 import io.github.nbcss.createfactorycontroller.content.helper.TooltipBuilder;
 import io.github.nbcss.createfactorycontroller.content.packet.RemoveComponentPacket;
 import io.github.nbcss.createfactorycontroller.content.render.BatchedBlitter;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.nbcss.createfactorycontroller.content.render.PanelCanvasGraphics;
+import io.github.nbcss.createfactorycontroller.content.render.PanelSurface;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
@@ -42,23 +43,21 @@ public record VirtualLogicalTubeWidget(LogicalTubeBehaviour behaviour) implement
 
     @Override
     public void renderBack(RenderingParameters params) {
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         int x0 = position().x() * CELL, y0 = position().y() * CELL;
-        BatchedBlitter.forSprite(sprite("back")).blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+        gfx.sprite(PanelSurface.BACKPLATE, sprite("back"), x0, y0, CELL, CELL, 0xFFFFFFFF, false);
     }
 
     @Override
     public void renderFront(RenderingParameters params) {
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         int x0 = position().x() * CELL, y0 = position().y() * CELL;
         boolean powered = behaviour.isPowered();   // current value state
-        BatchedBlitter.forSprite(sprite(powered ? "front_on" : "front_off"))
-                .blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+        gfx.sprite(PanelSurface.FACE, sprite(powered ? "front_on" : "front_off"), x0, y0, CELL, CELL, 0xFFFFFFFF, true);
 
         LogicalTubeBehaviour.Mode mode = behaviour.getMode();
         // Mode symbol: 16×16 sprite drawn at half size (8×8), centred, tinted by the value state.
-        BatchedBlitter.forSprite(sprite(mode.name().toLowerCase()))
-                .blit(gfx.bufferSource(), gfx.pose(), x0 + CELL / 4, y0 + CELL / 4, CELL / 2, CELL / 2);
+        gfx.sprite(PanelSurface.SYMBOL, sprite(mode.name().toLowerCase()), x0 + CELL / 4, y0 + CELL / 4, CELL / 2, CELL / 2, 0xFFFFFFFF, false);
     }
 
     @Override
@@ -81,7 +80,7 @@ public record VirtualLogicalTubeWidget(LogicalTubeBehaviour behaviour) implement
     }
 
     @Override
-    public boolean onClick(FactoryControllerScreen screen, ItemStack carried, double mouseX, double mouseY, int button) {
+    public boolean onClick(ControllerEditorHost screen, ItemStack carried, double mouseX, double mouseY, int button) {
         if (!carried.isEmpty()) return false;   // no item interaction
         screen.clearSelection();
         Minecraft.getInstance().setScreen(new LogicalTubeSettingsScreen(screen, behaviour.position()));
@@ -89,7 +88,7 @@ public record VirtualLogicalTubeWidget(LogicalTubeBehaviour behaviour) implement
     }
 
     @Override
-    public void remove(FactoryControllerScreen screen) {
+    public void remove(ControllerEditorHost screen) {
         PacketDistributor.sendToServer(new RemoveComponentPacket(screen.getMenu().controllerPos, behaviour.position()));
     }
 }

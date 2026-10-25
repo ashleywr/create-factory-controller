@@ -24,29 +24,23 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public class FactoryControllerMenu extends AbstractContainerMenu implements ComponentHolder {
-    public final List<VirtualComponentBehaviour> components = new ArrayList<>();
-    /** Position → component index for O(1) lookup; mirrors {@link #components}. */
-    private final Map<VirtualComponentPosition, VirtualComponentBehaviour> componentsByPosition = new HashMap<>();
-    /** Client-side connections. */
-    private final ConnectionGraph connectionGraph = new ConnectionGraph();
-    public final List<UUID> knownNetworks = new ArrayList<>();
-    public final Map<UUID, NetworkSettings> networkSettings = new HashMap<>();
-    /** Runtime-only unloaded-link cache */
+    public final SyncedPanelState state;
+    public final List<VirtualComponentBehaviour> components;
+    public final List<UUID> knownNetworks;
+    public final Map<UUID, NetworkSettings> networkSettings;
     public List<MissingLinkStatus> missingLinkStatuses = List.of();
-    /** Controller's custom display name (synced); blank means the default translated block name. */
     public String controllerName = "";
-    public boolean controllerPowered = false;
+    public boolean controllerPowered;
     public final BlockPos controllerPos;
+    public final UUID controllerIdentity;
+    public int syncEpoch, syncRevision;
+    public boolean resyncPending;
 
-    // ── Client-side sync tokens ──
-    /** BE-instance token; a delta from a different BE load can never match it. */
-    public int syncEpoch;
-    /** Revision this menu's state reflects. A delta applies only when its base equals this. */
-    public int syncRevision;
-    /** True while a full-resync request is in flight, so a burst of bad deltas asks only once.
-     *  Cleared when the full snapshot arrives ({@link #applyFullSync}). */
-    public boolean resyncPending = false;
-
+    public void refreshFromState() {
+        missingLinkStatuses = state.missingLinkStatuses;
+        controllerName = state.controllerName; controllerPowered = state.controllerPowered;
+        syncEpoch = state.syncEpoch; syncRevision = state.syncRevision; resyncPending = state.resyncPending;
+    }
     // Server-side: reference to the actual BE
     @Nullable private final FactoryControllerBlockEntity blockEntity;
 
@@ -60,6 +54,10 @@ public class FactoryControllerMenu extends AbstractContainerMenu implements Comp
         super(CreateFactoryController.FACTORY_CONTROLLER_MENU.get(), syncId);
         this.blockEntity = be;
         this.controllerPos = be.getBlockPos();
+        this.controllerIdentity = be.dashboard().identity;
+        this.state = new SyncedPanelState(controllerPos, controllerIdentity);
+        state.clientMirror = false;
+        components = state.components; knownNetworks = state.knownNetworks; networkSettings = state.networkSettings;
         this.cachedPlayerInventory = playerInventory;
 
         // Snapshot data from BE for client sync
@@ -77,11 +75,16 @@ public class FactoryControllerMenu extends AbstractContainerMenu implements Comp
         super(CreateFactoryController.FACTORY_CONTROLLER_MENU.get(), syncId);
         this.blockEntity = null;
         this.controllerPos = buf.readBlockPos();
+        this.controllerIdentity = buf.readUUID();
+        this.state = io.github.nbcss.createfactorycontroller.content.client.panel.FactoryControllerClientBoards.get(controllerPos, controllerIdentity).state;
+        components = state.components; knownNetworks = state.knownNetworks; networkSettings = state.networkSettings;
         this.cachedPlayerInventory = playerInventory;
         this.syncEpoch = buf.readVarInt();
         this.syncRevision = buf.readVarInt();
 
         int componentCount = buf.readVarInt();
+        // Menu-open metadata must not erase a cached full snapshot.
+
         for (int i = 0; i < componentCount; i++) {
             VirtualComponentBehaviour b = ComponentRegistry.readComponent(buf);
             if (b != null) addComponent(b);
@@ -92,7 +95,7 @@ public class FactoryControllerMenu extends AbstractContainerMenu implements Comp
             Connection c = Connection.fromClient(buf);
             if (c != null) connections.add(c);
         }
-        loadConnections(connections);   // build the client graph from the synced central edge list
+        if (!connections.isEmpty()) loadConnections(connections);   // build the client graph from the synced central edge list
 
         int networkCount = buf.readVarInt();
         for (int i = 0; i < networkCount; i++) {
@@ -104,6 +107,7 @@ public class FactoryControllerMenu extends AbstractContainerMenu implements Comp
 
         this.controllerName = buf.readUtf();
         this.controllerPowered = buf.readBoolean();
+        if (state.syncRevision > 0 || !state.components.isEmpty()) refreshFromState();
 
         addExtraSlots(OFF_SCREEN, OFF_SCREEN, false);
     }
@@ -142,10 +146,9 @@ public class FactoryControllerMenu extends AbstractContainerMenu implements Comp
     @Override
     public boolean stillValid(@NotNull Player player) {
         if (blockEntity == null) return true;
-        return blockEntity.getLevel() != null &&
-               player.distanceToSqr(blockEntity.getBlockPos().getX() + 0.5,
-                                    blockEntity.getBlockPos().getY() + 0.5,
-                                    blockEntity.getBlockPos().getZ() + 0.5) < 64;
+        return DashboardAssemblyManager.coreAt(player.level(), controllerPos) == blockEntity
+                && controllerIdentity.equals(blockEntity.dashboard().identity)
+                && DashboardAssemblyManager.nearMember(blockEntity, player, 8);
     }
 
     @Override
@@ -188,132 +191,30 @@ public class FactoryControllerMenu extends AbstractContainerMenu implements Comp
 
     // ── Component access (keep the list + position index in sync) ─────────────
 
-    /** Adds a component, indexing it by position. A later component at the same cell wins. */
-    public void addComponent(VirtualComponentBehaviour component) {
-        components.add(component);
-        componentsByPosition.put(component.position(), component);
-        // Server menus index the BE's live objects only for menu bookkeeping
-        if (blockEntity == null) {
-            component.setHolder(this);
-            component.setGraph(connectionGraph);
-        }
+    public void addComponent(VirtualComponentBehaviour c) { state.addComponent(c); }
+    public void setComponents(Collection<? extends VirtualComponentBehaviour> c) { state.setComponents(c); }
+    public void clearComponents() { state.clearComponents(); }
+    public void loadConnections(List<Connection> c) { state.loadConnections(c); }
+    public void applyFullSync(int epoch, int revision, Collection<? extends VirtualComponentBehaviour> c,
+            List<Connection> edges, List<NetworkSettings> networks, List<MissingLinkStatus> missing, String name, boolean powered) {
+        state.applyFullSync(epoch, revision, c, edges, networks, missing, name, powered); refreshFromState();
     }
-
-    /** Replaces all components (used on the full sync), rebuilding the position index. */
-    public void setComponents(Collection<? extends VirtualComponentBehaviour> newComponents) {
-        clearComponents();
-        for (VirtualComponentBehaviour c : newComponents) addComponent(c);
-    }
-
-    /** Removes every component and clears the position index + the (client) connection graph. */
-    public void clearComponents() {
-        components.clear();
-        componentsByPosition.clear();
-        connectionGraph.clear();
-    }
-
-    /** Replaces the client connection graph from a synced central edge list (the components' positions are already in). */
-    public void loadConnections(List<Connection> edges) {
-        connectionGraph.clear();
-        for (Connection conn : edges) connectionGraph.add(conn);
-        bindConnectionHooks();
-    }
-
-    // ── Sync apply (full snapshot + per-item deltas; called by the sync packet handlers) ─────────
-
-    /** Wholesale board replace from a full snapshot (menu-open equivalent). Authoritative: resets the sync
-     *  tokens unconditionally, which also ends any pending resync round-trip. */
-    public void applyFullSync(int epoch, int revision,
-                              Collection<? extends VirtualComponentBehaviour> newComponents,
-                              List<Connection> connections,
-                              List<NetworkSettings> networks,
-                              List<MissingLinkStatus> missingLinks,
-                              String name, boolean powered) {
-        setComponents(newComponents);
-        loadConnections(connections);
-        applyNetworkSettings(networks);
-        applyMissingLinkStatuses(missingLinks);
-        controllerName = name;
-        controllerPowered = powered;
-        syncEpoch = epoch;
-        syncRevision = revision;
-        resyncPending = false;
-    }
-
-    /** Replaces the synced network-settings mirror (full snapshot, or a delta's networks section). */
-    public void applyNetworkSettings(List<NetworkSettings> settings) {
-        knownNetworks.clear();
-        networkSettings.clear();
-        for (NetworkSettings s : settings) {
-            knownNetworks.add(s.network());
-            networkSettings.put(s.network(), s);
-        }
-    }
-
-    public void applyMissingLinkStatuses(List<MissingLinkStatus> statuses) {
-        missingLinkStatuses = List.copyOf(statuses);
-    }
-
-    /** Delta apply: replace-or-add one component (a FULL upsert). Idempotent. */
-    public void upsertComponent(VirtualComponentBehaviour component) {
-        VirtualComponentBehaviour old = componentsByPosition.remove(component.position());
-        if (old != null) components.remove(old);
-        addComponent(component);
-    }
-
-    /** Delta apply: drop the component at {@code pos} and every wire touching it — mirroring the server's
-     *  remove path, whose packet also carries those wires as explicit removals (re-removal is a no-op). */
-    public void removeComponentAt(VirtualComponentPosition pos) {
-        VirtualComponentBehaviour old = componentsByPosition.remove(pos);
-        if (old != null) components.remove(old);
-        connectionGraph.disconnect(pos);
-    }
-
-    /** Delta apply: add-or-replace one wire (the graph keeps one wire per endpoint pair per type). */
-    public void putConnection(Connection conn, long gameTime) {
-        Connection previous = connectionGraph.get(conn.from, conn.to, conn.type);
-        conn.onClientSynced(previous, gameTime);
-        connectionGraph.add(conn);
-    }
-
-    /** Delta apply: remove the {@code type} wire {@code from → to}, if present. */
-    public void removeConnectionAt(VirtualComponentPosition from, VirtualComponentPosition to, Connection.Type type) {
-        connectionGraph.remove(to, from, type);
-    }
-
-    /** Re-folds one sink after its incoming wires changed (the client-side mirror of the server's settle). */
-    public void refoldSink(VirtualComponentPosition pos, Connection.Type type) {
-        VirtualComponentBehaviour sink = componentAt(pos);
-        if (sink != null) sink.onInputChanged(type);
-    }
-
-    private void bindConnectionHooks() {
-        // Edges arrive with their value; each sink re-folds from them (no callbacks to rebind in the new model).
-        for (Connection conn : connectionGraph.connections()) {
-            VirtualComponentBehaviour sink = componentAt(conn.to);
-            if (sink != null) sink.onInputChanged(conn.type);
-        }
-    }
-
-    /** O(1) lookup of the component occupying {@code pos}, or {@code null} if the cell is empty. */
-    @Override
-    public VirtualComponentBehaviour componentAt(VirtualComponentPosition position) {
-        return position == null ? null : componentsByPosition.get(position);
-    }
-
-    /** Number of components currently on the given network (used by the network selector). */
-    public int componentCountIn(UUID network) {
-        int n = 0;
-        for (VirtualComponentBehaviour c : components)
-            if (c instanceof VirtualGaugeBehaviour g && network.equals(g.networkId)) n++;
-        return n;
-    }
+    public void applyNetworkSettings(List<NetworkSettings> settings) { state.applyNetworkSettings(settings); }
+    public void applyMissingLinkStatuses(List<MissingLinkStatus> statuses) { state.applyMissingLinkStatuses(statuses); refreshFromState(); }
+    public void upsertComponent(VirtualComponentBehaviour c) { state.upsertComponent(c); }
+    public void removeComponentAt(VirtualComponentPosition p) { state.removeComponentAt(p); }
+    public void putConnection(Connection c, long time) { state.putConnection(c, time); }
+    public void removeConnectionAt(VirtualComponentPosition from, VirtualComponentPosition to, Connection.Type type) { state.removeConnectionAt(from, to, type); }
+    public void refoldSink(VirtualComponentPosition p, Connection.Type type) { state.refoldSink(p, type); }
+    @Override public VirtualComponentBehaviour componentAt(VirtualComponentPosition p) { return state.componentAt(p); }
+    public int componentCountIn(UUID network) { return state.componentCountIn(network); }
 
     // ── Data serialization for menu open ──────────────────────────────────
 
     /** Called by NeoForge when the server opens this menu for a player. */
     public static void writeExtraData(FactoryControllerBlockEntity be, RegistryFriendlyByteBuf buf) {
         buf.writeBlockPos(be.getBlockPos());
+        buf.writeUUID(be.dashboard().identity);
         buf.writeVarInt(be.syncEpoch());
         buf.writeVarInt(be.syncRevision());
 

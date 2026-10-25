@@ -12,7 +12,7 @@ import net.createmod.catnip.lang.FontHelper;
 import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu;
 import io.github.nbcss.createfactorycontroller.content.component.VirtualComponentPosition;
 import io.github.nbcss.createfactorycontroller.content.compat.fluids.FluidCompat;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.HelpButton;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.InteractiveAreaWidget;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.TooltipIconButton;
@@ -54,7 +54,7 @@ public class SetItemScreen extends AbstractSimiContainerScreen<FactoryController
     private static final int INV_TEX_HOTBAR_Y = 76;
     private static final int FILTER_SLOT_SIZE = 16;
 
-    private final FactoryControllerScreen controller;
+    private final ControllerEditorHost controller;
     private final VirtualComponentPosition gaugePos;
     private final VirtualGaugeBehaviour behaviour;
     /** Staged filter copied into the gauge when the screen closes. */
@@ -81,7 +81,7 @@ public class SetItemScreen extends AbstractSimiContainerScreen<FactoryController
     private int invBgX, invBgY;
 
 
-    public SetItemScreen(FactoryControllerScreen controller, VirtualGaugeBehaviour behaviour) {
+    public SetItemScreen(ControllerEditorHost controller, VirtualGaugeBehaviour behaviour) {
         super(controller.getMenu(), Minecraft.getInstance().player.getInventory(),
               CreateLang.translate("gui.factory_panel.place_item_to_monitor").component());
         this.controller = controller;
@@ -126,7 +126,7 @@ public class SetItemScreen extends AbstractSimiContainerScreen<FactoryController
             PacketDistributor.sendToServer(new GaugeSetItemPacket(
                     menu.controllerPos, gaugePos, filter.copy(), ignoreData));
             controller.beginRelocateMode(gaugePos);
-            Minecraft.getInstance().setScreen(controller);
+            Minecraft.getInstance().setScreen(controller.returnScreen());
         });
         relocateButton.setToolTip(Component.translatable("createfactorycontroller.gui.action_relocate"));
         addWidget(relocateButton);
@@ -279,7 +279,7 @@ public class SetItemScreen extends AbstractSimiContainerScreen<FactoryController
     private void returnToController() {
         PacketDistributor.sendToServer(new GaugeSetItemPacket(
                 menu.controllerPos, gaugePos, filter.copy(), ignoreData));
-        Minecraft.getInstance().setScreen(controller);
+        Minecraft.getInstance().setScreen(controller.returnScreen());
     }
 
     private void setFilterFromCarried(ItemStack source, int mouseButton, boolean allowClear) {

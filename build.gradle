@@ -94,6 +94,22 @@ base {
 // Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
+}
+
+sourceSets {
+    gameTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
+tasks.register('prepareDashboardTestStructures', Copy) {
+    from('src/gameTest/resources/gameteststructures')
+    into('run-gametest/gameteststructures')
+}
+
 // Optional "fluids/energy via packages" addons. CreateFluidLogistic ("fluidlogistics"), CreateFluid ("fluid")
 // and Create: Repackaged ("repackaged") all hook the same package/logistics system and are mutually incompatible
 // at runtime, so exactly ONE is put on the dev runtime, chosen by -PfluidRuntime. We COMPILE against the two
@@ -151,6 +167,8 @@ neoForge {
     runs {
         client {
             client()
+            if (project.hasProperty('autominePort'))
+                systemProperty 'automine.httpPort', project.property('autominePort')
 
             // A conflict-free Factory Logistics runtime (-PfactoryLogistics) excludes Deployer, but the shared
             // run/mods dev folder is a Deployer + Create: Mobile Packages setup: extra_gauges hard-depends on
@@ -175,6 +193,8 @@ neoForge {
         // The gametest system is also enabled by default for other run configs under the /test command.
         gameTestServer {
             type = "gameTestServer"
+            gameDirectory = project.file('run-gametest')
+            sourceSet = sourceSets.gameTest
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
@@ -210,11 +230,20 @@ neoForge {
         // multi mod projects should define one per mod
         "${mod_id}" {
             sourceSet(sourceSets.main)
+            if (project.hasProperty('dashboardGameTests')) sourceSet(sourceSets.gameTest)
         }
     }
 }
 
 // Sets up a dependency configuration called 'localRuntime'.
+neoForge.addModdingDependenciesTo(sourceSets.test)
+neoForge.addModdingDependenciesTo(sourceSets.gameTest)
+sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
+
+tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+    dependsOn tasks.named('prepareDashboardTestStructures')
+}
+
 // This configuration should be used instead of 'runtimeOnly' to declare
 // a dependency that will be present for runtime testing but that is
 // "optional", meaning it will not be pulled by dependents of this mod.
@@ -224,6 +253,9 @@ configurations {
 }
 
 dependencies {
+    testImplementation platform('org.junit:junit-bom:5.12.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // Create mod (compile + dev runtime; Flywheel/Registrate/Ponder come in transitively)
     compileOnly "com.simibubi.create:create-1.21.1:${create_version}"
     localRuntime "com.simibubi.create:create-1.21.1:${create_version}"

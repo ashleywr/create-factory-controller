@@ -75,7 +75,12 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.UnaryOperator;
 
-public class FactoryControllerBlockEntity extends SmartBlockEntity implements MenuProvider, ComponentHolder {
+public class FactoryControllerBlockEntity extends SmartBlockEntity implements MenuProvider, ComponentHolder, DashboardTile {
+    private final DashboardMembership dashboard = new DashboardMembership();
+    @Override public DashboardMembership dashboard() { return dashboard; }
+    @Override public void onLoad() {
+        super.onLoad(); DashboardAssemblyManager.loaded(this); DashboardAssemblyManager.schedule(level, worldPosition);
+    }
 
     /** Cap on components a single controller may hold — bounds the BE/item NBT and sync size.
      *  Configurable via {@link ServerConfig#maxComponents()} (default 256, max 1024). */
@@ -363,6 +368,7 @@ public class FactoryControllerBlockEntity extends SmartBlockEntity implements Me
 
     @Override
     public void invalidate() {
+        DashboardAssemblyManager.unloaded(this);
         super.invalidate();
         // Called from setRemoved() on both block break and chunk unload — drop our entries promptly (the
         // registry's TTL is the fallback). On reload, the first tick/lazyTick heartbeats again.
@@ -1090,36 +1096,41 @@ public class FactoryControllerBlockEntity extends SmartBlockEntity implements Me
         deltaTracker.everything();
     }
 
-    /** Ships this tick's accumulated changes to every player with this controller's menu open: the full
-     *  snapshot when escalated (or requested via resync), else one delta. Bumps {@link #syncRevision} only
-     *  when something is actually sent; with no viewers the marks are dropped — the next menu open carries
-     *  full state anyway. */
+    /** Ships one frozen update to nearby passive viewers and editors. The revision also advances
+     *  without viewers so a returning cache cannot mistake an old snapshot for current state. */
     private void syncMenuToPlayers() {
         if (level == null || level.isClientSide()) return;
         ServerLevel serverLevel = (ServerLevel) level;
         List<ServerPlayer> viewers = new ArrayList<>();
         for (ServerPlayer player : serverLevel.getServer().getPlayerList().getPlayers())
-            if (player.containerMenu instanceof FactoryControllerMenu menu
-                    && menu.controllerPos.equals(getBlockPos()))
+            if (DashboardAssemblyManager.nearMember(this, player, ServerConfig.DASHBOARD_SYNC_RADIUS.get()))
                 viewers.add(player);
         if (viewers.isEmpty()) {
+            syncRevision++;
             deltaTracker.clear();
             return;
         }
 
         syncRevision++;
         CustomPacketPayload packet = deltaTracker.isEverything() ? buildFullSnapshot() : buildDelta();
+        packet = io.github.nbcss.createfactorycontroller.content.packet.EncodedPanelUpdatePacket.freeze(packet, level.registryAccess());
         deltaTracker.clear();
         for (ServerPlayer player : viewers)
             PacketDistributor.sendToPlayer(player, packet);
     }
 
     /** The authoritative whole-board packet — sent on escalation/resync; also what a menu open embeds. */
-    private SyncPanelStatePacket buildFullSnapshot() {
+    public SyncPanelStatePacket buildFullSnapshot() {
         List<VirtualComponentBehaviour> comps = new ArrayList<>(components.values());
         List<Connection> conns = connectionGraph.connections();
-        return new SyncPanelStatePacket(getBlockPos(), syncEpoch, syncRevision,
-                comps, conns, currentNetworkSettings(), missingLinkStatuses, customName, redstonePowered);
+        return new SyncPanelStatePacket(level.dimension().location(), dashboard.identity, getBlockPos(), syncEpoch, syncRevision,
+                comps, conns, currentNetworkSettings(), missingLinkStatuses, customName, redstonePowered, dashboardTag());
+    }
+
+    private CompoundTag dashboardTag() {
+        CompoundTag tag = new CompoundTag();
+        dashboard.write(tag);
+        return tag;
     }
 
     /** Builds this flush's delta from the tracker marks. Bodies are captured to bytes here, on the server
@@ -1161,7 +1172,7 @@ public class FactoryControllerBlockEntity extends SmartBlockEntity implements Me
         SyncPanelDeltaPacket.HeaderState header = deltaTracker.isHeaderDirty()
                 ? new SyncPanelDeltaPacket.HeaderState(customName, redstonePowered) : null;
 
-        return new SyncPanelDeltaPacket(getBlockPos(), syncEpoch, syncRevision - 1, syncRevision,
+        return new SyncPanelDeltaPacket(level.dimension().location(), dashboard.identity, getBlockPos(), syncEpoch, syncRevision - 1, syncRevision,
                 removals, connRemovals, upserts, connUpserts, netList, missingLinks, header);
     }
 
@@ -1174,15 +1185,9 @@ public class FactoryControllerBlockEntity extends SmartBlockEntity implements Me
         return netList;
     }
 
-    /** Re-syncs every open controller that uses {@code network} — called after its shared settings change,
-     *  since one edit is visible to every controller on that network. */
+    /** Marks all loaded controllers using the shared network, including passive world boards. */
     public static void resyncNetworkViewers(net.minecraft.server.MinecraftServer server, UUID network) {
-        if (server == null) return;
-        for (ServerPlayer player : server.getPlayerList().getPlayers())
-            if (player.containerMenu instanceof FactoryControllerMenu menu
-                    && player.level().getBlockEntity(menu.controllerPos) instanceof FactoryControllerBlockEntity be
-                    && be.networks.contains(network))
-                be.syncNetworks();
+        DashboardAssemblyManager.networkChanged(server, network);
     }
 
     // ── MenuProvider ───────────────────────────────────────────────────────
@@ -1206,6 +1211,7 @@ public class FactoryControllerBlockEntity extends SmartBlockEntity implements Me
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.write(tag, registries, clientPacket);
 
+        dashboard.write(tag);
         if (clientPacket) return;
 
         tag.putInt("Ver", DATA_VERSION);
@@ -1229,6 +1235,8 @@ public class FactoryControllerBlockEntity extends SmartBlockEntity implements Me
     @Override
     protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.read(tag, registries, clientPacket);
+        dashboard.read(tag);
+        if (clientPacket) return;
         clearCopiedSetupComponent();
         tag = ControllerDataFixer.fixControllerBE(tag);
 
@@ -1250,6 +1258,7 @@ public class FactoryControllerBlockEntity extends SmartBlockEntity implements Me
         }
 
         markOrderableDirty();   // republish to the registry on the next server tick (level is set by then)
+        deltaTracker.everything(); // /data edits and reloads also refresh passive world mirrors
     }
 
     /**
@@ -1287,7 +1296,8 @@ public class FactoryControllerBlockEntity extends SmartBlockEntity implements Me
 
     /** True when there is any configured board state worth carrying on the dropped item. */
     public boolean hasSetup() {
-        return !components.isEmpty() || !networks.isEmpty() || !customName.isBlank();
+        return !components.isEmpty() || !networks.isEmpty() || !customName.isBlank()
+                || dashboard.originX != 0 || dashboard.originY != 0;
     }
 
     /**
@@ -1313,6 +1323,8 @@ public class FactoryControllerBlockEntity extends SmartBlockEntity implements Me
             networkList.add(entry);
         }
         tag.put("Networks", networkList);
+        tag.putInt("DisplayOriginX", dashboard.originX);
+        tag.putInt("DisplayOriginY", dashboard.originY);
         return tag;
     }
 
@@ -1323,6 +1335,8 @@ public class FactoryControllerBlockEntity extends SmartBlockEntity implements Me
         tag = ControllerDataFixer.fixControllerBE(tag);
 
         customName = tag.getString("CustomName");
+        dashboard.originX = tag.getInt("DisplayOriginX");
+        dashboard.originY = tag.getInt("DisplayOriginY");
 
         components.clear();
         ListTag componentList = tag.getList("Components", Tag.TAG_COMPOUND);

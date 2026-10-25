@@ -13,12 +13,10 @@ import io.github.nbcss.createfactorycontroller.content.compat.computercraft.CcTw
 import io.github.nbcss.createfactorycontroller.content.compat.fluids.FluidCompat;
 import io.github.nbcss.createfactorycontroller.content.component.connection.Connection;
 import io.github.nbcss.createfactorycontroller.content.displaylink.FactoryControllerDisplaySource;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
 import io.github.nbcss.createfactorycontroller.content.item.ProductionTarget;
 import io.github.nbcss.createfactorycontroller.content.packet.NetworkHandler;
 import io.github.nbcss.createfactorycontroller.content.production.OrderableGaugeRegistry;
 import io.github.nbcss.createfactorycontroller.content.production.ProductionOrderManager;
-import io.github.nbcss.createfactorycontroller.content.render.TiledSpriteRenderer;
 import io.github.nbcss.createfactorycontroller.registry.CFCBlocks;
 import io.github.nbcss.createfactorycontroller.registry.CFCBlockEntityTypes;
 import io.github.nbcss.createfactorycontroller.registry.CFCCreativeModeTabs;
@@ -37,8 +35,6 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
-import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -119,7 +115,7 @@ public class CreateFactoryController {
         DISPLAY_SOURCES.register(modEventBus);
 
         modEventBus.addListener((RegisterPayloadHandlersEvent event) ->
-            NetworkHandler.register(event.registrar(MODID)));
+            NetworkHandler.register(event.registrar(MODID + ":dashboard-1")));
         modEventBus.addListener(this::commonSetup);
 
         ProductionOrderManager.registerEvents();
@@ -135,11 +131,6 @@ public class CreateFactoryController {
 
         modContainer.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
 
-        if (FMLEnvironment.dist == Dist.CLIENT) {
-            modEventBus.addListener(this::registerScreens);
-            modEventBus.addListener(this::registerShaders);
-        }
-
         Connection.Type.registerConnections();
     }
 
@@ -151,11 +142,4 @@ public class CreateFactoryController {
         });
     }
 
-    private void registerScreens(RegisterMenuScreensEvent event) {
-        event.register(FACTORY_CONTROLLER_MENU.get(), FactoryControllerScreen::new);
-    }
-
-    private void registerShaders(RegisterShadersEvent event) {
-        TiledSpriteRenderer.registerShaders(event);
-    }
 }

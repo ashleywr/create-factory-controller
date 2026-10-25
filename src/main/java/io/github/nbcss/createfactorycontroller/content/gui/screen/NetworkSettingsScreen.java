@@ -8,7 +8,7 @@ import org.anti_ad.mc.ipn.api.IPNIgnore;
 import io.github.nbcss.createfactorycontroller.CreateFactoryController;
 import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerBlockEntity;
 import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.InteractiveAreaWidget;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.TooltipIconButton;
 import io.github.nbcss.createfactorycontroller.content.helper.TooltipBuilder;
@@ -71,7 +71,7 @@ public class NetworkSettingsScreen extends AbstractSimiContainerScreen<FactoryCo
     private static final int ICON_X = 22, ICON_Y = 28, ICON_SIZE = 16;
     private static final int NAME_X = 46, NAME_Y = 28, NAME_W = 138, NAME_H = 16;
 
-    private final FactoryControllerScreen controller;
+    private final ControllerEditorHost controller;
     private final UUID network;
 
     /** Staged icon copied into the network settings on commit (empty ⇒ default icon). */
@@ -84,7 +84,7 @@ public class NetworkSettingsScreen extends AbstractSimiContainerScreen<FactoryCo
     private int panelX, panelY;
     private int invBgX, invBgY;
 
-    public NetworkSettingsScreen(FactoryControllerScreen controller, UUID network) {
+    public NetworkSettingsScreen(ControllerEditorHost controller, UUID network) {
         super(controller.getMenu(), Minecraft.getInstance().player.getInventory(),
               Component.translatable("createfactorycontroller.gui.network_settings"));
         this.controller = controller;
@@ -204,7 +204,7 @@ public class NetworkSettingsScreen extends AbstractSimiContainerScreen<FactoryCo
 
     private void returnToController() {
         commit();
-        Minecraft.getInstance().setScreen(controller);
+        Minecraft.getInstance().setScreen(controller.returnScreen());
     }
 
     private void commit() {

@@ -41,7 +41,8 @@ public record GaugeSetItemPacket(BlockPos pos, VirtualComponentPosition panelPos
     public static void handle(GaugeSetItemPacket packet, net.neoforged.neoforge.network.handling.IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
-            if (!(player.level().getBlockEntity(packet.pos()) instanceof FactoryControllerBlockEntity be)) return;
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.pos());
+            if (be == null) return;
             be.setComponentItem(packet.panelPos(), packet.filter(), packet.ignoreData());
         });
     }

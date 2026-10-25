@@ -11,7 +11,7 @@ import io.github.nbcss.createfactorycontroller.CreateFactoryController;
 import io.github.nbcss.createfactorycontroller.content.component.VirtualComponentPosition;
 import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu;
 import io.github.nbcss.createfactorycontroller.content.component.VirtualRedstoneLinkBehaviour;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.HelpButton;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.InteractiveAreaWidget;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.TooltipIconButton;
@@ -60,7 +60,7 @@ public class ConfigureRedstoneLinkScreen extends AbstractSimiContainerScreen<Fac
     // Frequency slots (panel-relative), stacked red-over-blue; items drawn 16×16 at slot+1.
     private static final int RED_X = 87, RED_Y = 26, BLUE_X = 87, BLUE_Y = 44, SLOT = 18;
 
-    private final FactoryControllerScreen controller;
+    private final ControllerEditorHost controller;
     private final VirtualComponentPosition linkPos;
 
     // Staged config (committed on close).
@@ -74,7 +74,7 @@ public class ConfigureRedstoneLinkScreen extends AbstractSimiContainerScreen<Fac
     private HelpButton helpButton;
     private InteractiveAreaWidget redArea, blueArea;
 
-    public ConfigureRedstoneLinkScreen(FactoryControllerScreen controller, VirtualComponentPosition linkPos) {
+    public ConfigureRedstoneLinkScreen(ControllerEditorHost controller, VirtualComponentPosition linkPos) {
         super(controller.getMenu(), Minecraft.getInstance().player.getInventory(),
               Component.translatable("createfactorycontroller.gui.redstone_link_settings"));
         this.controller = controller;
@@ -108,7 +108,7 @@ public class ConfigureRedstoneLinkScreen extends AbstractSimiContainerScreen<Fac
         relocateButton = new TooltipIconButton(panelX + 8, panelY + 79, AllIcons.I_MOVE_GAUGE);
         relocateButton.withCallback(() -> {
             controller.beginRelocateMode(linkPos);
-            Minecraft.getInstance().setScreen(controller);   // commit happens in removed()
+            Minecraft.getInstance().setScreen(controller.returnScreen());   // commit happens in removed()
         });
         relocateButton.setToolTip(Component.translatable("createfactorycontroller.gui.action_relocate"));
         addWidget(relocateButton);
@@ -117,7 +117,7 @@ public class ConfigureRedstoneLinkScreen extends AbstractSimiContainerScreen<Fac
         addConnectionButton = new TooltipIconButton(panelX + 30, panelY + 79, AllIcons.I_ADD);
         addConnectionButton.withCallback(() -> {
             controller.beginConnectionMode(linkPos);
-            Minecraft.getInstance().setScreen(controller);   // commit happens in removed()
+            Minecraft.getInstance().setScreen(controller.returnScreen());   // commit happens in removed()
         });
         addConnectionButton.setToolTip(CreateLang.translate("gui.factory_panel.connect_input").component());
         addWidget(addConnectionButton);
@@ -129,7 +129,7 @@ public class ConfigureRedstoneLinkScreen extends AbstractSimiContainerScreen<Fac
         addWidget(modeButton);
 
         confirmButton = new TooltipIconButton(panelX + 167, panelY + 79, AllIcons.I_CONFIRM);
-        confirmButton.withCallback(() -> Minecraft.getInstance().setScreen(controller));
+        confirmButton.withCallback(() -> Minecraft.getInstance().setScreen(controller.returnScreen()));
         confirmButton.setToolTip(CreateLang.translate("gui.factory_panel.save_and_close").component());
         addWidget(confirmButton);
 
@@ -279,7 +279,7 @@ public class ConfigureRedstoneLinkScreen extends AbstractSimiContainerScreen<Fac
 
     @Override
     public void onClose() {
-        Minecraft.getInstance().setScreen(controller);   // return to the controller; commit fires in removed()
+        Minecraft.getInstance().setScreen(controller.returnScreen());   // return to the controller; commit fires in removed()
     }
 
     @Override

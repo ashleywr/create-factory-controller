@@ -2,7 +2,7 @@ package io.github.nbcss.createfactorycontroller.content.gui.screen.blueprint;
 
 import io.github.nbcss.createfactorycontroller.content.blueprint.BlueprintStorage;
 import io.github.nbcss.createfactorycontroller.content.component.VirtualComponentPosition;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.network.NetworkSettings;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -23,7 +23,7 @@ public class BlueprintSaveScreen extends BlueprintFormScreen {
     private final List<BlueprintStorage.Material> materials;
     private final List<UUID> networks;
 
-    public BlueprintSaveScreen(FactoryControllerScreen controller, Set<VirtualComponentPosition> selection) {
+    public BlueprintSaveScreen(ControllerEditorHost controller, Set<VirtualComponentPosition> selection) {
         super(controller, Component.translatable("createfactorycontroller.gui.blueprint.save_title"));
         this.selected = selection.stream().filter(p -> menu.componentAt(p) != null).toList();
         this.materials = BlueprintStorage.materials(menu, this.selected);
@@ -86,7 +86,7 @@ public class BlueprintSaveScreen extends BlueprintFormScreen {
             Path saved = BlueprintStorage.save(menu, selected, networks, blueprintName(),
                     blueprintNote(), Minecraft.getInstance().level.registryAccess());
             controller.showBlueprintSaved(saved.getFileName().toString());
-            Minecraft.getInstance().setScreen(controller);
+            Minecraft.getInstance().setScreen(controller.returnScreen());
         } catch (IOException | RuntimeException exception) {
             showError(BlueprintErrors.describe("createfactorycontroller.gui.blueprint.save_failed", exception));
         }

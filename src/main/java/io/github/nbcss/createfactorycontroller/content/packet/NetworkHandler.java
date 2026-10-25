@@ -8,6 +8,10 @@ public final class NetworkHandler {
     private NetworkHandler() {}
 
     public static void register(PayloadRegistrar registrar) {
+        registrar.playToClient(EncodedPanelUpdatePacket.TYPE, EncodedPanelUpdatePacket.STREAM_CODEC, EncodedPanelUpdatePacket::handle);
+        registrar.playToClient(DashboardUnavailablePacket.TYPE, DashboardUnavailablePacket.STREAM_CODEC, DashboardUnavailablePacket::handle);
+        registrar.playToServer(SetDashboardOriginPacket.TYPE, SetDashboardOriginPacket.STREAM_CODEC, SetDashboardOriginPacket::handle);
+        registrar.playToServer(RequestDashboardStatePacket.TYPE, RequestDashboardStatePacket.STREAM_CODEC, RequestDashboardStatePacket::handle);
         registrar.playToServer(AttachComponentPacket.TYPE, AttachComponentPacket.STREAM_CODEC, AttachComponentPacket::handle);
         registrar.playToServer(RemoveComponentPacket.TYPE, RemoveComponentPacket.STREAM_CODEC, RemoveComponentPacket::handle);
         registrar.playToServer(MoveComponentPacket.TYPE, MoveComponentPacket.STREAM_CODEC, MoveComponentPacket::handle);

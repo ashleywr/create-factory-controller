@@ -14,7 +14,7 @@ import com.simibubi.create.foundation.utility.CreateLang;
 import io.github.nbcss.createfactorycontroller.ClientConfig;
 import io.github.nbcss.createfactorycontroller.CreateFactoryController;
 import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -50,7 +50,7 @@ public class ControllerSettingScreen extends AbstractSimiContainerScreen<Factory
     private static final int PREVIEW_X = 22, PREVIEW_Y = 28;
     private static final int SELECTOR_X = 46, SELECTOR_Y = 29, SELECTOR_W = 138, SELECTOR_H = 16;
 
-    private final FactoryControllerScreen controller;
+    private final ControllerEditorHost controller;
 
     /** Available background names (no path prefix / .png suffix); just the current selection until the async
      *  scan (see {@link #scanOptionsAsync}) lands the full sorted set. */
@@ -66,7 +66,7 @@ public class ControllerSettingScreen extends AbstractSimiContainerScreen<Factory
     private TooltipIconButton closeButton;
     private TooltipIconButton resetButton;
 
-    public ControllerSettingScreen(FactoryControllerScreen controller) {
+    public ControllerSettingScreen(ControllerEditorHost controller) {
         super(controller.getMenu(), Minecraft.getInstance().player.getInventory(),
               Component.translatable("createfactorycontroller.gui.controller_settings"));
         this.controller = controller;
@@ -178,7 +178,7 @@ public class ControllerSettingScreen extends AbstractSimiContainerScreen<Factory
 
     private void returnToController() {
         ClientConfig.save();
-        Minecraft.getInstance().setScreen(controller);
+        Minecraft.getInstance().setScreen(controller.returnScreen());
     }
 
     private List<FormattedCharSequence> selectorTooltip() {

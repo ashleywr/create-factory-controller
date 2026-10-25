@@ -24,6 +24,8 @@ public record ReturnCarriedPacket() implements CustomPacketPayload {
     public static void handle(ReturnCarriedPacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
+            if (!(player.containerMenu instanceof io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu menu)
+                    || io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, menu.controllerPos) == null) return;
             ItemStack carried = player.containerMenu.getCarried();
             if (carried.isEmpty()) return;
             player.containerMenu.setCarried(ItemStack.EMPTY);

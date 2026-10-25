@@ -2,6 +2,7 @@ package io.github.nbcss.createfactorycontroller.registry;
 
 import io.github.nbcss.createfactorycontroller.CreateFactoryController;
 import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerBlock;
+import io.github.nbcss.createfactorycontroller.content.block.FactoryDashboardPanelBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -21,6 +22,11 @@ public final class CFCBlocks {
                             .sound(SoundType.WOOD)
                             .requiresCorrectToolForDrops()
                             .noOcclusion()));
+
+    public static final DeferredBlock<FactoryDashboardPanelBlock> FACTORY_DASHBOARD_PANEL =
+            BLOCKS.register("factory_dashboard_panel", () -> new FactoryDashboardPanelBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_GRAY).strength(3.0f, 6.0f).sound(SoundType.METAL)
+                    .requiresCorrectToolForDrops().noOcclusion()));
 
     private CFCBlocks() {}
 

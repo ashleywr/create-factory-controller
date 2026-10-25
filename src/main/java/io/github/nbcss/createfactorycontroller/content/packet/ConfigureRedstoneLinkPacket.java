@@ -50,7 +50,8 @@ public record ConfigureRedstoneLinkPacket(BlockPos pos, VirtualComponentPosition
     public static void handle(ConfigureRedstoneLinkPacket packet, net.neoforged.neoforge.network.handling.IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
-            if (!(player.level().getBlockEntity(packet.pos()) instanceof FactoryControllerBlockEntity be)) return;
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.pos());
+            if (be == null) return;
             if (be.componentAt(packet.panelPos()) instanceof VirtualRedstoneLinkBehaviour link)
                 link.configure(packet.receive(), packet.red(), packet.blue());
         });

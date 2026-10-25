@@ -3,7 +3,7 @@ package io.github.nbcss.createfactorycontroller.content.gui.screen.blueprint;
 import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.foundation.gui.AllIcons;
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import net.createmod.catnip.gui.element.ScreenElement;
 import io.github.nbcss.createfactorycontroller.content.blueprint.BlueprintPlacement;
 import io.github.nbcss.createfactorycontroller.content.blueprint.BlueprintStorage;
@@ -41,7 +41,7 @@ public class BlueprintPlaceScreen extends BlueprintFormScreen {
     /** Rebuilt each tick so the material preview tracks the inventory while the screen is open. */
     private Map<Item, Integer> inventoryCounts = Map.of();
 
-    public BlueprintPlaceScreen(FactoryControllerScreen controller, BlueprintPlacement placement,
+    public BlueprintPlaceScreen(ControllerEditorHost controller, BlueprintPlacement placement,
                                 VirtualComponentPosition anchor) {
         super(controller, Component.translatable("createfactorycontroller.gui.blueprint.place_title"));
         this.placement = placement;
@@ -229,7 +229,7 @@ public class BlueprintPlaceScreen extends BlueprintFormScreen {
                 placement.payload(), placement.assignments(),
                 Optional.ofNullable(placement.boxMin()), Optional.ofNullable(placement.boxMax())));
         controller.abortBlueprintPlacement();
-        Minecraft.getInstance().setScreen(controller);
+        Minecraft.getInstance().setScreen(controller.returnScreen());
     }
 
     @Override

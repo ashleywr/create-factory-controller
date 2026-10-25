@@ -13,7 +13,7 @@ import io.github.nbcss.createfactorycontroller.content.component.arithmetic.Arit
 import io.github.nbcss.createfactorycontroller.content.component.VirtualComponentPosition;
 import io.github.nbcss.createfactorycontroller.content.component.arithmetic.ArithmeticOperator;
 import io.github.nbcss.createfactorycontroller.content.component.arithmetic.BuiltinOperator;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.HelpButton;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.InteractiveAreaWidget;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.TooltipIconButton;
@@ -138,7 +138,7 @@ public class ArithmeticTubeSettingsScreen extends AbstractSimiContainerScreen<Fa
 
     private static final BuiltinOperator[] OPERATORS = BuiltinOperator.values();
 
-    private final FactoryControllerScreen controller;
+    private final ControllerEditorHost controller;
     private final VirtualComponentPosition tubePos;
 
     private int panelX, panelY, panelH;
@@ -553,7 +553,7 @@ public class ArithmeticTubeSettingsScreen extends AbstractSimiContainerScreen<Fa
 
     private record SplitRowBounds(Rect2i icon, Rect2i bg, Rect2i mode, Rect2i value) {}
 
-    public ArithmeticTubeSettingsScreen(FactoryControllerScreen controller, VirtualComponentPosition tubePos) {
+    public ArithmeticTubeSettingsScreen(ControllerEditorHost controller, VirtualComponentPosition tubePos) {
         super(controller.getMenu(), Minecraft.getInstance().player.getInventory(),
                 Component.translatable("createfactorycontroller.gui.arithmetic_tube_settings"));
         this.controller = controller;
@@ -570,11 +570,11 @@ public class ArithmeticTubeSettingsScreen extends AbstractSimiContainerScreen<Fa
         menu.repositionSlots(-2000, -2000, false);
 
         closeButton = new TooltipIconButton(0, 0, AllIcons.I_CONFIRM);
-        closeButton.withCallback(() -> Minecraft.getInstance().setScreen(controller));   // save & close
+        closeButton.withCallback(() -> Minecraft.getInstance().setScreen(controller.returnScreen()));   // save & close
         closeButton.setToolTip(CreateLang.translate("gui.factory_panel.save_and_close").component());
 
         relocateButton = new TooltipIconButton(0, 0, AllIcons.I_MOVE_GAUGE);
-        relocateButton.withCallback(() -> { controller.beginRelocateMode(tubePos); Minecraft.getInstance().setScreen(controller); });
+        relocateButton.withCallback(() -> { controller.beginRelocateMode(tubePos); Minecraft.getInstance().setScreen(controller.returnScreen()); });
         relocateButton.setToolTip(Component.translatable("createfactorycontroller.gui.action_relocate"));
 
         swapButton = new TooltipIconButton(0, 0, AllIcons.I_FLIP);
@@ -582,7 +582,7 @@ public class ArithmeticTubeSettingsScreen extends AbstractSimiContainerScreen<Fa
         swapButton.setToolTip(Component.translatable("createfactorycontroller.gui.arithmetic_tube.swap_inputs"));
 
         addConnectionButton = new TooltipIconButton(0, 0, AllIcons.I_ADD);
-        addConnectionButton.withCallback(() -> { controller.beginConnectionMode(tubePos); Minecraft.getInstance().setScreen(controller); });
+        addConnectionButton.withCallback(() -> { controller.beginConnectionMode(tubePos); Minecraft.getInstance().setScreen(controller.returnScreen()); });
         addConnectionButton.setToolTip(CreateLang.translate("gui.factory_panel.connect_input").component());
 
         ScreenElement addConstantIcon = (g, ix, iy) -> g.blitSprite(SpriteLocations.ADD_CONSTANT_ICON, ix, iy, ICON16, ICON16);
@@ -728,7 +728,7 @@ public class ArithmeticTubeSettingsScreen extends AbstractSimiContainerScreen<Fa
     @Override
     protected void renderBg(@NotNull GuiGraphics gfx, float partialTick, int mouseX, int mouseY) {
         ArithmeticTubeBehaviour tube = tube();
-        if (tube == null) { Minecraft.getInstance().setScreen(controller); return; }
+        if (tube == null) { Minecraft.getInstance().setScreen(controller.returnScreen()); return; }
         recomputeLayout();
         constantEditor.discardIfRowGone(rows);
         controller.renderBoard(gfx, -1, -1, partialTick, true);
@@ -1231,7 +1231,7 @@ public class ArithmeticTubeSettingsScreen extends AbstractSimiContainerScreen<Fa
     @Override
     public void onClose() {
         constantEditor.commit();
-        Minecraft.getInstance().setScreen(controller);
+        Minecraft.getInstance().setScreen(controller.returnScreen());
     }
 
     @Override

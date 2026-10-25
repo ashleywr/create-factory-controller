@@ -33,7 +33,7 @@ import io.github.nbcss.createfactorycontroller.content.component.gauge.VirtualGa
 import io.github.nbcss.createfactorycontroller.content.component.connection.Connection;
 import io.github.nbcss.createfactorycontroller.content.component.VirtualComponentPosition;
 import io.github.nbcss.createfactorycontroller.content.compat.fluids.FluidCompat;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.gui.screen.GaugeInfoClient;
 import io.github.nbcss.createfactorycontroller.content.gui.screen.PanelSyncListener;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.HelpButton;
@@ -114,7 +114,7 @@ public class ConfigureRecipeScreen extends AbstractSimiContainerScreen<FactoryCo
     private static final int MULTIPLIER_DISABLE_COLOR = 0xFFE0E0E0;
     private static final int TICKS_PER_SEC = 20;
 
-    private final FactoryControllerScreen controller;
+    private final ControllerEditorHost controller;
     private final VirtualComponentPosition gaugePos;
 
     int panelX, panelY;
@@ -193,7 +193,7 @@ public class ConfigureRecipeScreen extends AbstractSimiContainerScreen<FactoryCo
     private InteractiveAreaWidget countArea;
     private InteractiveAreaWidget ingredientArea;
 
-    public ConfigureRecipeScreen(FactoryControllerScreen controller, VirtualComponentPosition gaugePos) {
+    public ConfigureRecipeScreen(ControllerEditorHost controller, VirtualComponentPosition gaugePos) {
         super(controller.getMenu(), Minecraft.getInstance().player.getInventory(),
               CreateLang.translate("gui.factory_panel.title_as_recipe").component());
         this.controller = controller;
@@ -273,7 +273,7 @@ public class ConfigureRecipeScreen extends AbstractSimiContainerScreen<FactoryCo
         newInputButton.withCallback(() -> {
             sendConfig(false, false);   // commit edits before leaving the screen
             controller.beginConnectionMode(gaugePos);
-            Minecraft.getInstance().setScreen(controller);
+            Minecraft.getInstance().setScreen(controller.returnScreen());
         });
         newInputButton.setToolTip(CreateLang.translate("gui.factory_panel.connect_input").component());
         addWidget(newInputButton);
@@ -282,7 +282,7 @@ public class ConfigureRecipeScreen extends AbstractSimiContainerScreen<FactoryCo
         relocateButton.withCallback(() -> {
             sendConfig(false, false);   // commit edits (incl. repeated slots) before leaving the screen
             controller.beginRelocateMode(gaugePos);
-            Minecraft.getInstance().setScreen(controller);
+            Minecraft.getInstance().setScreen(controller.returnScreen());
         });
         relocateButton.setToolTip(Component.translatable("createfactorycontroller.gui.action_relocate"));
         addWidget(relocateButton);
@@ -1653,11 +1653,11 @@ public class ConfigureRecipeScreen extends AbstractSimiContainerScreen<FactoryCo
 
     private void confirmAndReturn() {
         sendConfig(false, false);
-        Minecraft.getInstance().setScreen(controller);
+        Minecraft.getInstance().setScreen(controller.returnScreen());
     }
 
     private void deleteAndReturn() {
         sendConfig(false, true);
-        Minecraft.getInstance().setScreen(controller);
+        Minecraft.getInstance().setScreen(controller.returnScreen());
     }
 }

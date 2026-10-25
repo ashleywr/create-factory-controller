@@ -42,7 +42,8 @@ public record BatchMoveComponentPacket(BlockPos pos, List<VirtualComponentPositi
     public static void handle(BatchMoveComponentPacket packet, net.neoforged.neoforge.network.handling.IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
-            if (!(player.level().getBlockEntity(packet.pos()) instanceof FactoryControllerBlockEntity be)) return;
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.pos());
+            if (be == null) return;
             be.moveComponents(packet.sources(), packet.dx(), packet.dy());
         });
     }

@@ -1,0 +1,124 @@
+{
+  "sources": [
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/arithmetic_tube/back",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/arithmetic_tube/back"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/arithmetic_tube/front",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/arithmetic_tube/front"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/factory_gauge/back",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/factory_gauge/back"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/factory_gauge/front",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/factory_gauge/front"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/factory_gauge/indicator",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/factory_gauge/indicator"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/fluid_gauge/front",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/fluid_gauge/front"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/logical_tube/and",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/logical_tube/and"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/logical_tube/back",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/logical_tube/back"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/logical_tube/front_off",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/logical_tube/front_off"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/logical_tube/front_on",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/logical_tube/front_on"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/logical_tube/nand",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/logical_tube/nand"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/logical_tube/nor",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/logical_tube/nor"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/logical_tube/or",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/logical_tube/or"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/redstone_link/back_power",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/redstone_link/back_power"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/redstone_link/back",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/redstone_link/back"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/redstone_link/front_power",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/redstone_link/front_power"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/redstone_link/front",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/redstone_link/front"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/redstone_link/receiver_off",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/redstone_link/receiver_off"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/redstone_link/receiver_on",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/redstone_link/receiver_on"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/redstone_link/transmitter_off",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/redstone_link/transmitter_off"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/redstone_link/transmitter_on",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/redstone_link/transmitter_on"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/target/half_1",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/target/half_1"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/target/half_2",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/target/half_2"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "createfactorycontroller:gui/sprites/factory_controller/target/regular",
+      "sprite": "createfactorycontroller:world_dashboard/factory_controller/target/regular"
+    }
+  ]
+}

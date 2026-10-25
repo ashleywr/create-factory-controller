@@ -39,7 +39,8 @@ public record RequestPanelResyncPacket(BlockPos pos) implements CustomPacketPayl
             // Only a player actually viewing this controller may trigger its (heavier) full re-send.
             if (!(player.containerMenu instanceof FactoryControllerMenu menu)
                     || !menu.controllerPos.equals(packet.pos())) return;
-            if (player.level().getBlockEntity(packet.pos()) instanceof FactoryControllerBlockEntity be)
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.pos());
+            if (be != null)
                 be.syncEverything();
         });
     }

@@ -10,7 +10,7 @@ import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMe
 import io.github.nbcss.createfactorycontroller.content.blueprint.BlueprintPlacement;
 import io.github.nbcss.createfactorycontroller.content.blueprint.BlueprintStorage;
 import io.github.nbcss.createfactorycontroller.content.blueprint.SchematicImport;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.gui.screen.PanelSyncListener;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.ActionPromptWidget;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.HelpButton;
@@ -82,7 +82,7 @@ public class BlueprintLibraryScreen extends AbstractSimiContainerScreen<FactoryC
     private static final int MATERIAL_HELD_COLOR = BlueprintPlacement.MATERIAL_HELD_COLOR;
     private static final int MATERIAL_MISSING_COLOR = BlueprintPlacement.MATERIAL_MISSING_COLOR;
 
-    private final FactoryControllerScreen controller;
+    private final ControllerEditorHost controller;
     private final LerpedFloat scroll = LerpedFloat.linear().startWithValue(0);
     private final List<EntryWidget> entryWidgets = new ArrayList<>();
     private final ActionPromptWidget actionPrompt = new ActionPromptWidget();
@@ -106,7 +106,7 @@ public class BlueprintLibraryScreen extends AbstractSimiContainerScreen<FactoryC
     private double scrollbarGrabOffset;
     private int firstEntryWidgetIndex;
 
-    public BlueprintLibraryScreen(FactoryControllerScreen controller) {
+    public BlueprintLibraryScreen(ControllerEditorHost controller) {
         super(controller.getMenu(), Minecraft.getInstance().player.getInventory(),
                 Component.translatable("createfactorycontroller.gui.blueprint.library_title"));
         this.controller = controller;
@@ -313,7 +313,7 @@ public class BlueprintLibraryScreen extends AbstractSimiContainerScreen<FactoryC
     }
 
     private void closeLibrary() {
-        Minecraft.getInstance().setScreen(controller);
+        Minecraft.getInstance().setScreen(controller.returnScreen());
     }
 
     /** A small green tick badge at the icon's bottom-right, shown when the selection is importable. */
@@ -770,7 +770,7 @@ public class BlueprintLibraryScreen extends AbstractSimiContainerScreen<FactoryC
                 return;
             }
             controller.beginBlueprintPlacement(new BlueprintPlacement(name, info(), payload));
-            Minecraft.getInstance().setScreen(controller);
+            Minecraft.getInstance().setScreen(controller.returnScreen());
         }
 
         @Override
@@ -820,7 +820,7 @@ public class BlueprintLibraryScreen extends AbstractSimiContainerScreen<FactoryC
         public void place() {
             controller.beginBlueprintPlacement(BlueprintPlacement.schematic(
                     name(), paste.info(), paste.payload(), board.networks, board.boxMin, board.boxMax));
-            Minecraft.getInstance().setScreen(controller);
+            Minecraft.getInstance().setScreen(controller.returnScreen());
         }
 
         /** "Save": open the import save screen (name / note / materials) — the old import button's action. */

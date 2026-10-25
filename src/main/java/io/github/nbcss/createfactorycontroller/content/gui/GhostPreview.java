@@ -191,4 +191,35 @@ public final class GhostPreview implements ComponentHolder {
     private static VirtualComponentPosition shift(VirtualComponentPosition base, VirtualComponentPosition offset) {
         return new VirtualComponentPosition(base.x() + offset.x(), base.y() + offset.y());
     }
+
+    /** World variant: no GUI state changes; each owning tile emits only its own preview instruments. */
+    public void renderWorld(io.github.nbcss.createfactorycontroller.content.render.WorldPanelCanvasGraphics gfx,
+                            VirtualComponentPosition offset, Set<VirtualComponentPosition> visibleCells,
+                            int x0, int y0) {
+        var translucent = new io.github.nbcss.createfactorycontroller.content.render.WorldPanelCanvasGraphics(
+                gfx.pose(), gfx.bufferSource(), gfx.light(), .55f);
+        gfx.pose().pushPose();
+        gfx.pose().translate(offset.x() * CELL, offset.y() * CELL, 0);
+        for (VirtualComponentWidget widget : widgets.values()) {
+            if (ownsWorldPreview(widget, offset, visibleCells, x0, y0))
+                io.github.nbcss.createfactorycontroller.content.render.FactoryControllerCanvasRenderer.ghostBody(widget, translucent);
+        }
+        for (VirtualComponentWidget widget : widgets.values()) {
+            if (!ownsWorldPreview(widget, offset, visibleCells, x0, y0)) continue;
+            io.github.nbcss.createfactorycontroller.content.render.FactoryControllerCanvasRenderer.ghostArtwork(widget, translucent, visibleCells);
+        }
+        gfx.pose().popPose();
+        for (GhostWire wire : wires) {
+            VirtualComponentPosition from = wire.fromGhost() ? shift(wire.from(), offset) : wire.from();
+            VirtualComponentPosition to = wire.toGhost() ? shift(wire.to(), offset) : wire.to();
+            var path = io.github.nbcss.createfactorycontroller.content.client.panel.DashboardCanvasLayout.route(from, to, visibleCells, Set.of());
+            VirtualConnectionRenderer.create(path, (GHOST_ALPHA << 24) | (wire.color() & 0xFFFFFF), false).drawPath(translucent, x0, y0);
+        }
+    }
+    private static boolean ownsWorldPreview(VirtualComponentWidget widget, VirtualComponentPosition offset,
+                                            Set<VirtualComponentPosition> visibleCells, int x0, int y0) {
+        VirtualComponentPosition destination = shift(widget.position(), offset);
+        return visibleCells.contains(destination) && destination.x() * CELL >= x0 && destination.x() * CELL < x0 + 64
+                && destination.y() * CELL >= y0 && destination.y() * CELL < y0 + 64;
+    }
 }

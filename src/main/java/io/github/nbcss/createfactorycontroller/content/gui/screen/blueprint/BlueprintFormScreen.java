@@ -8,7 +8,7 @@ import org.anti_ad.mc.ipn.api.IPNIgnore;
 import io.github.nbcss.createfactorycontroller.CreateFactoryController;
 import io.github.nbcss.createfactorycontroller.content.block.FactoryControllerMenu;
 import io.github.nbcss.createfactorycontroller.content.blueprint.BlueprintStorage;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.gui.screen.PanelSyncListener;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.TooltipIconButton;
 import io.github.nbcss.createfactorycontroller.content.gui.widget.VerticalScrollView;
@@ -83,7 +83,7 @@ public abstract class BlueprintFormScreen extends AbstractSimiContainerScreen<Fa
     private static final int NO_NETWORK_COLOR = 0xFFCCCCCC;
     private static final int COMPACT_FONT_COLOR = 0xFFDDE5FF;
 
-    protected final FactoryControllerScreen controller;
+    protected final ControllerEditorHost controller;
 
     private HelpButton helpButton;
     private CenteredEditBox nameBox;
@@ -117,7 +117,7 @@ public abstract class BlueprintFormScreen extends AbstractSimiContainerScreen<Fa
     private boolean overwriteExisting;
     private Component errorMessage;
 
-    protected BlueprintFormScreen(FactoryControllerScreen controller, Component title) {
+    protected BlueprintFormScreen(ControllerEditorHost controller, Component title) {
         super(controller.getMenu(), Minecraft.getInstance().player.getInventory(), title);
         this.controller = controller;
     }
@@ -216,7 +216,7 @@ public abstract class BlueprintFormScreen extends AbstractSimiContainerScreen<Fa
     }
 
     protected Screen previousScreen() {
-        return controller;
+        return controller.returnScreen();
     }
 
     protected void onDiscard() {}

@@ -45,7 +45,8 @@ public record SetNetworkSettingsPacket(BlockPos controllerPos, UUID network, Str
     public static void handle(SetNetworkSettingsPacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
-            if (!(player.level().getBlockEntity(packet.controllerPos()) instanceof FactoryControllerBlockEntity be)) return;
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.controllerPos());
+            if (be == null) return;
             // Only a controller that actually uses this network may edit it.
             if (!be.networks.contains(packet.network())) return;
 

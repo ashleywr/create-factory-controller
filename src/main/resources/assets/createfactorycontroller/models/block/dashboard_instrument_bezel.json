@@ -1,0 +1,11 @@
+{
+  "textures": { "metal": "minecraft:block/iron_block", "rim": "minecraft:block/gray_concrete" },
+  "elements": [
+    { "from": [0, 0, 0], "to": [16, 16, 6.4], "faces": {
+      "up": { "texture": "#metal" }, "down": { "texture": "#metal" },
+      "west": { "texture": "#metal" }, "east": { "texture": "#metal" }
+    } },
+    { "from": [0, 0, 6.4], "to": [16, 1, 6.4], "faces": { "south": { "texture": "#rim" } } },
+    { "from": [0, 15, 6.4], "to": [16, 16, 6.4], "faces": { "south": { "texture": "#rim" } } }
+  ]
+}

@@ -2,6 +2,7 @@ package io.github.nbcss.createfactorycontroller.registry;
 
 import io.github.nbcss.createfactorycontroller.CreateFactoryController;
 import io.github.nbcss.createfactorycontroller.content.item.FactoryControllerBlockItem;
+import io.github.nbcss.createfactorycontroller.content.item.FactoryDashboardPanelBlockItem;
 import io.github.nbcss.createfactorycontroller.content.item.ProductionPatternItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
@@ -27,6 +28,10 @@ public final class CFCItems {
 
     public static final DeferredItem<Item> ARRANGEMENT_MARKER =
             ITEMS.register("arrangement_marker", () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<FactoryDashboardPanelBlockItem> FACTORY_DASHBOARD_PANEL =
+            ITEMS.register("factory_dashboard_panel", () -> new FactoryDashboardPanelBlockItem(
+                    CFCBlocks.FACTORY_DASHBOARD_PANEL.get(), new Item.Properties()));
 
     private CFCItems() {}
 

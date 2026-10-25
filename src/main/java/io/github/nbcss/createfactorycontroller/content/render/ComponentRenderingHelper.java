@@ -19,7 +19,7 @@ public class ComponentRenderingHelper {
 
     /** Parameters passed to {@link VirtualComponentWidget} rendering methods. */
     public record RenderingParameters(
-            GuiGraphics graphics,
+            PanelCanvasGraphics graphics,
             Vector2d mousePosition,
             boolean renderOverlay,
             ResourceIconRenderer.Batch batchRenderedItems,
@@ -35,7 +35,7 @@ public class ComponentRenderingHelper {
     }
 
     public RenderingParameters params(GuiGraphics graphics, Vector2d mousePosition, boolean mouseOver) {
-        return new RenderingParameters(graphics, mousePosition, mouseOver, ResourceIconRenderer.BATCH, occupiedCells);
+        return new RenderingParameters(new GuiPanelCanvasGraphics(graphics), mousePosition, mouseOver, ResourceIconRenderer.BATCH, occupiedCells);
     }
 
     public void flushBuffers(GuiGraphics graphics) {

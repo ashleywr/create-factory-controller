@@ -43,6 +43,8 @@ out/
 /run/
 /run-fl/
 /run-clean/
+/run-gametest/
+/logs/
 !**/src/**/run/
 **/src/generated/**/.cache/
 /repo/

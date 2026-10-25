@@ -41,7 +41,8 @@ public record RemoveConnectionPacket(BlockPos pos, VirtualComponentPosition from
     public static void handle(RemoveConnectionPacket packet, net.neoforged.neoforge.network.handling.IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer player)) return;
-            if (!(player.level().getBlockEntity(packet.pos()) instanceof FactoryControllerBlockEntity be)) return;
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.pos());
+            if (be == null) return;
             Connection.Type type = Connection.Type.get(packet.connectionType());
             if (type == null) return;
             be.removeConnection(packet.from(), packet.to(), type);

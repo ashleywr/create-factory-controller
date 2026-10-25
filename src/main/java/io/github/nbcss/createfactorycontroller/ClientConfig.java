@@ -8,6 +8,10 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 public final class ClientConfig {
 
     public static final ModConfigSpec SPEC;
+    public static final ModConfigSpec.BooleanValue WORLD_DASHBOARD_EDITOR;
+    public static final ModConfigSpec.IntValue DASHBOARD_RENDER_DISTANCE;
+    public static final ModConfigSpec.BooleanValue DASHBOARD_LOD;
+    public static final ModConfigSpec.BooleanValue DASHBOARD_RENDER_DIAGNOSTICS;
     public static final ModConfigSpec.ConfigValue<String> CONTROLLER_BACKGROUND;
     public static final ModConfigSpec.BooleanValue UPSCALE_BACKGROUND_TEXTURE;
     public static final ModConfigSpec.BooleanValue ALWAYS_SHOW_LABEL;
@@ -23,6 +27,15 @@ public final class ClientConfig {
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+        WORLD_DASHBOARD_EDITOR = builder.comment("Open the transparent in-world cabinet editor. Disable for the conventional screen.")
+                .define("worldDashboardEditor", true);
+        DASHBOARD_RENDER_DISTANCE = builder.comment("Cabinet instrument render distance; cannot extend server subscriptions.")
+                .defineInRange("dashboardRenderDistance", 32, 8, 32);
+        DASHBOARD_LOD = builder.comment("Reduce in-world instrument detail by projected screen size. Does not affect menus, nearby editing or controller logic.")
+                .define("dashboardLod", true);
+        DASHBOARD_RENDER_DIAGNOSTICS = builder.comment("Log bounded, five-second dashboard rendering/sync diagnostics. Does not change rendering or request extra state.",
+                        "Can also be toggled for this session with /cfc dashboarddebug on|off|status.")
+                .define("dashboardRenderDiagnostics", false);
         CONTROLLER_BACKGROUND = builder
                 .comment("Background texture path of Controller Screen. The texture file must locate in 'createfactorycontroller/textures/gui/controller_background/' path, and in 16 pixel resolution.")
                 .translation("createfactorycontroller.config.controller_background")

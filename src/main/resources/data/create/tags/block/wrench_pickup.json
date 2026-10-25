@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "createfactorycontroller:factory_controller"
+    "createfactorycontroller:factory_controller",
+    "createfactorycontroller:factory_dashboard_panel"
   ]
 }

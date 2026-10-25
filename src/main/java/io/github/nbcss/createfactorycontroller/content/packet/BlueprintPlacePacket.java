@@ -64,7 +64,8 @@ public record BlueprintPlacePacket(BlockPos pos, VirtualComponentPosition anchor
             // Only a player actually viewing this controller may place onto it.
             if (!(player.containerMenu instanceof FactoryControllerMenu menu)
                     || !menu.controllerPos.equals(packet.pos())) return;
-            if (!(player.level().getBlockEntity(packet.pos()) instanceof FactoryControllerBlockEntity be)) return;
+            FactoryControllerBlockEntity be = io.github.nbcss.createfactorycontroller.content.block.ControllerAccess.get(player, packet.pos());
+            if (be == null) return;
             be.placeBlueprint(packet.blueprint(), packet.anchor(), packet.networks(),
                     packet.boxMin().orElse(null), packet.boxMax().orElse(null), player);
         });

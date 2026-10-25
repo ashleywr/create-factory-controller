@@ -22,10 +22,14 @@ public final class SyncCodecs {
     public static byte[] capture(RegistryAccess registries, Consumer<RegistryFriendlyByteBuf> writer) {
         // NEOFORGE connection type: the sync path is always this mod on both sides (never a vanilla peer).
         RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), registries, ConnectionType.NEOFORGE);
-        writer.accept(buf);
-        byte[] out = new byte[buf.readableBytes()];
-        buf.readBytes(out);
-        return out;
+        try {
+            writer.accept(buf);
+            byte[] out = new byte[buf.readableBytes()];
+            buf.readBytes(out);
+            return out;
+        } finally {
+            buf.release();
+        }
     }
 
     /** Read-side counterpart of {@link #capture}: a registry-aware view over a captured body. */

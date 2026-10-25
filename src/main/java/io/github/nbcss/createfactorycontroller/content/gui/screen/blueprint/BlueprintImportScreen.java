@@ -3,7 +3,7 @@ package io.github.nbcss.createfactorycontroller.content.gui.screen.blueprint;
 import com.simibubi.create.foundation.gui.AllIcons;
 import io.github.nbcss.createfactorycontroller.content.blueprint.BlueprintStorage;
 import io.github.nbcss.createfactorycontroller.content.blueprint.SchematicImport;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.network.NetworkSettings;
 import net.createmod.catnip.gui.element.ScreenElement;
 import net.minecraft.ChatFormatting;
@@ -25,7 +25,7 @@ public class BlueprintImportScreen extends BlueprintFormScreen {
     private final SchematicImport.ImportedBoard board;
     private final List<UUID> networks;
 
-    public BlueprintImportScreen(FactoryControllerScreen controller, SchematicImport.ImportedBoard board) {
+    public BlueprintImportScreen(ControllerEditorHost controller, SchematicImport.ImportedBoard board) {
         super(controller, Component.translatable("createfactorycontroller.gui.blueprint.import_title"));
         this.board = board;
         this.networks = new ArrayList<>(board.networks);
@@ -103,7 +103,7 @@ public class BlueprintImportScreen extends BlueprintFormScreen {
             Path saved = BlueprintStorage.save(board, board.positions, networks, blueprintName(),
                     blueprintNote(), Minecraft.getInstance().level.registryAccess());
             controller.showBlueprintSaved(saved.getFileName().toString());
-            Minecraft.getInstance().setScreen(controller);
+            Minecraft.getInstance().setScreen(controller.returnScreen());
         } catch (IOException | RuntimeException exception) {
             showError(BlueprintErrors.describe("createfactorycontroller.gui.blueprint.save_failed", exception));
         }

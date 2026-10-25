@@ -8,7 +8,7 @@ import io.github.nbcss.createfactorycontroller.content.component.VirtualComponen
 import io.github.nbcss.createfactorycontroller.content.compat.fluids.FluidCompat;
 import io.github.nbcss.createfactorycontroller.content.component.connection.LogisticsConnection;
 import io.github.nbcss.createfactorycontroller.content.gui.screen.recipe.ConfigureRecipeScreen;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import io.github.nbcss.createfactorycontroller.content.gui.screen.SetItemScreen;
 import io.github.nbcss.createfactorycontroller.content.helper.TooltipBuilder;
 import io.github.nbcss.createfactorycontroller.content.packet.GaugeSetItemPacket;
@@ -21,7 +21,8 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.nbcss.createfactorycontroller.content.render.PanelCanvasGraphics;
+import io.github.nbcss.createfactorycontroller.content.render.PanelSurface;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -106,12 +107,11 @@ public final class VirtualGaugeWidget implements VirtualComponentWidget {
      */
     @Override
     public void renderBack(RenderingParameters params) {
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         Minecraft.getInstance().getProfiler().push("VirtualGaugeWidget");
         int x0 = behaviour.position().x() * CELL;
         int y0 = behaviour.position().y() * CELL;
-        BatchedBlitter.forSprite(behaviour.getTexture().withSuffix("/back"))
-                .blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+        gfx.sprite(PanelSurface.BACKPLATE, behaviour.getTexture().withSuffix("/back"), x0, y0, CELL, CELL, 0xFFFFFFFF, false);
         Minecraft.getInstance().getProfiler().pop();
     }
 
@@ -121,19 +121,18 @@ public final class VirtualGaugeWidget implements VirtualComponentWidget {
      */
     @Override
     public void renderFront(RenderingParameters params) {
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         Minecraft.getInstance().getProfiler().push("VirtualGaugeWidget");
 
         int x0 = behaviour.position().x() * CELL;
         int y0 = behaviour.position().y() * CELL;
 
-        BatchedBlitter.forSprite(behaviour.getFrontTexture())
-                .blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+        gfx.sprite(PanelSurface.FACE, behaviour.getFrontTexture(), x0, y0, CELL, CELL, 0xFFFFFFFF, false);
 
         if (!behaviour.filter.isEmpty()) {
             gfx.pose().pushPose();
             gfx.pose().translate(x0 + 4.0, y0 + 4.0, 0);   // 4-px inset centres the half-size icon
-            gfx.pose().scale(0.5f, 0.5f, 0.5f);            // uniform so item lighting stays correct
+            gfx.scaleItemIcon(0.5f);
             params.addBatchRenderedItem(behaviour.filter, 0, 0);
             gfx.pose().popPose();
         }
@@ -148,8 +147,7 @@ public final class VirtualGaugeWidget implements VirtualComponentWidget {
                     ((base >> 16) & 0xFF) / 255f * b,
                     ((base >> 8) & 0xFF) / 255f * b,
                     (base & 0xFF) / 255f * b);
-            BatchedBlitter.forSprite(INDICATOR).setColorARGB(color)
-                    .blit(gfx.bufferSource(), gfx.pose(), x0, y0, CELL, CELL);
+            gfx.sprite(PanelSurface.INDICATOR, INDICATOR, x0, y0, CELL, CELL, color, true);
         }
 
         Minecraft.getInstance().getProfiler().pop();
@@ -157,7 +155,7 @@ public final class VirtualGaugeWidget implements VirtualComponentWidget {
 
     @Override
     public void renderOverlay(RenderingParameters params) {
-        GuiGraphics gfx = params.graphics();
+        PanelCanvasGraphics gfx = params.graphics();
         Minecraft.getInstance().getProfiler().push("VirtualGaugeWidget");
 
         Component label = params.renderOverlay() ? behaviour.getCountLabel() : Component.empty();
@@ -175,13 +173,13 @@ public final class VirtualGaugeWidget implements VirtualComponentWidget {
                 : LABEL_SCALE;
 
         gfx.pose().pushPose();
-        gfx.pose().translate(x0 + CELL - LABEL_INSET, y0 + CELL - LABEL_INSET, 200);
+        gfx.pose().translate(x0 + CELL - LABEL_INSET, y0 + CELL - LABEL_INSET, gfx.labelDepth());
         gfx.pose().scale(scale, scale, 1);
         // Full 8-direction outline, like Create's in-world value-box labels (not a drop shadow).
         Matrix4f matrix = gfx.pose().last().pose();
         font.drawInBatch8xOutline(label.getVisualOrderText(), -w, -font.lineHeight,
                 0xFFFFFFFF, 0x000000,
-                matrix, gfx.bufferSource(), LightTexture.FULL_BRIGHT);
+                matrix, gfx.bufferSource(), gfx.labelLight());
         gfx.pose().popPose();
 
         Minecraft.getInstance().getProfiler().pop();
@@ -264,7 +262,7 @@ public final class VirtualGaugeWidget implements VirtualComponentWidget {
     /**
      * Shift-click: remove this gauge from the board (server refunds the item in survival).
      */
-    public void remove(FactoryControllerScreen screen) {
+    public void remove(ControllerEditorHost screen) {
         PacketDistributor.sendToServer(
                 new RemoveComponentPacket(screen.getMenu().controllerPos, behaviour.position()));
     }
@@ -275,7 +273,7 @@ public final class VirtualGaugeWidget implements VirtualComponentWidget {
      * with an empty cursor. Always consumes the click.
      */
     @Override
-    public boolean onClick(FactoryControllerScreen screen, ItemStack carried, double mouseX, double mouseY, int button) {
+    public boolean onClick(ControllerEditorHost screen, ItemStack carried, double mouseX, double mouseY, int button) {
         FactoryControllerMenu menu = screen.getMenu();
         if (!behaviour.filterResolver().acceptsItemDrop()) {
             ItemStack resolved = behaviour.filterResolver().fromCarried(carried, button);

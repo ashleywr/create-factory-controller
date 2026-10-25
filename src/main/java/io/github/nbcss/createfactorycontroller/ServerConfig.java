@@ -14,9 +14,18 @@ public final class ServerConfig {
     public static final ModConfigSpec.BooleanValue CHECK_INGREDIENTS_ON_SEND;
     public static final ModConfigSpec.BooleanValue PRESERVE_CONTROLLER_DATA;
     public static final ModConfigSpec.BooleanValue PASSIVE_TOTAL_DEMAND;
+    public static final ModConfigSpec.IntValue MAX_DASHBOARD_TILES;
+    public static final ModConfigSpec.IntValue MAX_DASHBOARD_SPAN;
+    public static final ModConfigSpec.IntValue DASHBOARD_SYNC_RADIUS;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+        MAX_DASHBOARD_TILES = builder.comment("Maximum cabinet tiles, including the controller core.")
+                .defineInRange("maxDashboardTiles", 64, 1, 256);
+        MAX_DASHBOARD_SPAN = builder.comment("Maximum width and height of a cabinet assembly in blocks.")
+                .defineInRange("maxDashboardSpan", 8, 1, 16);
+        DASHBOARD_SYNC_RADIUS = builder.comment("Distance from a loaded cabinet member for passive board synchronization.")
+                .defineInRange("dashboardSyncRadius", 32, 8, 64);
         MAX_COMPONENTS = builder
                 .comment("Maximum number of components a single Factory Controller may hold.",
                         "Higher values increase the controller's saved data and its GUI sync packet size.")

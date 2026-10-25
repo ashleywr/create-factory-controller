@@ -48,7 +48,9 @@ import java.util.Set;
  * connection removals → component removals → component upserts → connection upserts → header/networks/diagnostics →
  * re-fold sinks whose incoming wires changed → {@link PanelSyncListener#onPanelSync()}.</p>
  */
-public record SyncPanelDeltaPacket(BlockPos pos,
+public record SyncPanelDeltaPacket(ResourceLocation dimension,
+                                   java.util.UUID identity,
+                                   BlockPos pos,
                                    int epoch,
                                    int baseRevision,
                                    int newRevision,
@@ -77,6 +79,8 @@ public record SyncPanelDeltaPacket(BlockPos pos,
         new StreamCodec<>() {
             @Override
             public @NotNull SyncPanelDeltaPacket decode(RegistryFriendlyByteBuf buf) {
+                ResourceLocation dimension = buf.readResourceLocation();
+                java.util.UUID identity = buf.readUUID();
                 BlockPos pos = BlockPos.STREAM_CODEC.decode(buf);
                 int epoch = buf.readVarInt();
                 int baseRevision = buf.readVarInt();
@@ -96,12 +100,14 @@ public record SyncPanelDeltaPacket(BlockPos pos,
                 List<NetworkSettings> networks = buf.readBoolean() ? NETWORK_LIST_CODEC.decode(buf) : null;
                 List<MissingLinkStatus> missingLinks = buf.readBoolean() ? MissingLinkStatus.readList(buf) : null;
                 HeaderState header = buf.readBoolean() ? new HeaderState(buf.readUtf(), buf.readBoolean()) : null;
-                return new SyncPanelDeltaPacket(pos, epoch, baseRevision, newRevision, removedComponents,
+                return new SyncPanelDeltaPacket(dimension, identity, pos, epoch, baseRevision, newRevision, removedComponents,
                         removedConnections, componentUpserts, connectionUpserts, networks, missingLinks, header);
             }
 
             @Override
             public void encode(RegistryFriendlyByteBuf buf, SyncPanelDeltaPacket packet) {
+                buf.writeResourceLocation(packet.dimension());
+                buf.writeUUID(packet.identity());
                 BlockPos.STREAM_CODEC.encode(buf, packet.pos());
                 buf.writeVarInt(packet.epoch());
                 buf.writeVarInt(packet.baseRevision());
@@ -140,12 +146,14 @@ public record SyncPanelDeltaPacket(BlockPos pos,
         ctx.enqueueWork(() -> {
             Minecraft mc = Minecraft.getInstance();
             if (mc.level == null || mc.player == null) return;
-            if (!(mc.player.containerMenu instanceof FactoryControllerMenu menu)) return;
-            if (!menu.controllerPos.equals(packet.pos())) return;
+            if (!mc.level.dimension().location().equals(packet.dimension())) return;
+            io.github.nbcss.createfactorycontroller.content.client.panel.DashboardRenderDiagnostics.delta(packet.pos(), packet.identity());
+            var board = io.github.nbcss.createfactorycontroller.content.client.panel.FactoryControllerClientBoards.get(packet.pos(), packet.identity());
+            var menu = board.state;
 
             // Not the state this delta was built on (BE reload, missed packet) → full resync instead.
-            if (packet.epoch() != menu.syncEpoch || packet.baseRevision() != menu.syncRevision) {
-                requestResync(menu);
+            if (!board.ready || !menu.acceptsDelta(packet.epoch(), packet.baseRevision())) {
+                board.request();
                 return;
             }
 
@@ -167,8 +175,8 @@ public record SyncPanelDeltaPacket(BlockPos pos,
                 menu.removeComponentAt(pos);
 
             for (ComponentUpsert upsert : packet.componentUpserts()) {
+                RegistryFriendlyByteBuf body = SyncCodecs.wrap(upsert.body(), registries);
                 try {
-                    RegistryFriendlyByteBuf body = SyncCodecs.wrap(upsert.body(), registries);
                     if (upsert.full()) {
                         VirtualComponentBehaviour component = ComponentRegistry.readComponent(body);
                         if (component == null) broken = true;   // unknown type — skip, resync below
@@ -180,17 +188,22 @@ public record SyncPanelDeltaPacket(BlockPos pos,
                     }
                 } catch (Exception e) {
                     broken = true;
+                } finally {
+                    body.release();
                 }
             }
 
-            for (byte[] body : packet.connectionUpserts()) {
+            for (byte[] bytes : packet.connectionUpserts()) {
+                RegistryFriendlyByteBuf body = SyncCodecs.wrap(bytes, registries);
                 try {
-                    Connection conn = Connection.fromClient(SyncCodecs.wrap(body, registries));
+                    Connection conn = Connection.fromClient(body);
                     if (conn == null) { broken = true; continue; }
                     menu.putConnection(conn, mc.level.getGameTime());
                     refolds.add(new Refold(conn.to, conn.type));
                 } catch (Exception e) {
                     broken = true;
+                } finally {
+                    body.release();
                 }
             }
 
@@ -210,17 +223,14 @@ public record SyncPanelDeltaPacket(BlockPos pos,
             // everything anyway — this just keeps follow-up deltas applying instead of double-requesting.
             menu.syncRevision = packet.newRevision();
 
-            if (mc.screen instanceof PanelSyncListener listener)
+            board.changed();
+            if (mc.player.containerMenu instanceof FactoryControllerMenu open && open.state == menu) open.refreshFromState();
+            if (mc.player.containerMenu instanceof FactoryControllerMenu open && open.state == menu && mc.screen instanceof PanelSyncListener listener)
                 listener.onPanelSync();
 
             if (broken)
-                requestResync(menu);
+                board.request();
         });
     }
 
-    private static void requestResync(FactoryControllerMenu menu) {
-        if (menu.resyncPending) return;   // one request per fault burst; the snapshot clears the flag
-        menu.resyncPending = true;
-        PacketDistributor.sendToServer(new RequestPanelResyncPacket(menu.controllerPos));
-    }
 }

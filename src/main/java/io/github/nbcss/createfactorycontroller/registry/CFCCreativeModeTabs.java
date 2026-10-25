@@ -25,6 +25,7 @@ public final class CFCCreativeModeTabs {
                 .icon(() -> new ItemStack(CFCItems.FACTORY_CONTROLLER.get()))
                 .displayItems((parameters, output) -> {
                     output.accept(CFCItems.FACTORY_CONTROLLER.get());
+                    output.accept(CFCItems.FACTORY_DASHBOARD_PANEL.get());
                     output.accept(CFCItems.ARITHMETIC_TUBE.get());
                     output.accept(CFCItems.CUT_AMETHYST.get());
                 })

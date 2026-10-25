@@ -2,7 +2,7 @@ package io.github.nbcss.createfactorycontroller.content.gui.screen.blueprint;
 
 import com.simibubi.create.foundation.gui.AllIcons;
 import io.github.nbcss.createfactorycontroller.content.blueprint.BlueprintStorage;
-import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.FactoryControllerScreen;
+import io.github.nbcss.createfactorycontroller.content.gui.screen.controller.ControllerEditorHost;
 import net.createmod.catnip.gui.element.ScreenElement;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -17,7 +17,7 @@ public class BlueprintEditScreen extends BlueprintFormScreen {
     private final String originalName;
     private final BlueprintStorage.Info info;
 
-    public BlueprintEditScreen(FactoryControllerScreen controller, String blueprintName, BlueprintStorage.Info info) {
+    public BlueprintEditScreen(ControllerEditorHost controller, String blueprintName, BlueprintStorage.Info info) {
         super(controller, Component.translatable("createfactorycontroller.gui.blueprint.edit_title"));
         this.originalName = blueprintName;
         this.file = BlueprintStorage.blueprintPath(blueprintName);

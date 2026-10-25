@@ -95,7 +95,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.*;
 
 @IPNIgnore
-public class FactoryControllerScreen extends AbstractSimiContainerScreen<FactoryControllerMenu> implements PanelSyncListener {
+public class FactoryControllerScreen extends AbstractSimiContainerScreen<FactoryControllerMenu> implements ControllerEditorHost {
     // Responsive sizing — all in GUI-scaled pixels.
     private static final int SIDE_MARGIN = 160;
     private static final int VERTICAL_MARGIN = 10;
@@ -196,7 +196,7 @@ public class FactoryControllerScreen extends AbstractSimiContainerScreen<Factory
     private final ComponentRenderingHelper componentRenderingHelper = new ComponentRenderingHelper();
     private final TargetAnimationState targetAnimations = new TargetAnimationState();
 
-    private final Map<VirtualComponentPosition, VirtualComponentWidget> componentWidgets = new LinkedHashMap<>();
+    private final Map<VirtualComponentPosition, VirtualComponentWidget> componentWidgets;
     private final List<VirtualComponentWidget> visibleComponents = new ArrayList<>();
 
     private final ConnectionModeState connectionMode = new ConnectionModeState();
@@ -217,7 +217,7 @@ public class FactoryControllerScreen extends AbstractSimiContainerScreen<Factory
 
     // ── Selection mode (client-only) ─────────────────────────────────────────
     /** Components currently marked "selected" (gold reticle). Client-only; never serialized or synced. */
-    private final Set<VirtualComponentPosition> selected = new LinkedHashSet<>();
+    private final Set<VirtualComponentPosition> selected;
     // Drag-selection origin is stored in canvas-world coordinates so pan, zoom, or GUI resizing cannot move it.
     @Nullable private DragSelectionState dragSelection = null;
     // Batch relocate drag (normal mode, started by pressing a selected component).
@@ -241,6 +241,12 @@ public class FactoryControllerScreen extends AbstractSimiContainerScreen<Factory
 
     public FactoryControllerScreen(FactoryControllerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
+        var board = io.github.nbcss.createfactorycontroller.content.client.panel.FactoryControllerClientBoards.get(menu.controllerPos, menu.controllerIdentity);
+        if (board.interaction != null) board.interaction.cancel();
+        board.interaction = null;
+        board.hover = null;
+        componentWidgets = board.widgets;
+        selected = board.selection;
         // Restore this controller's last-session pan/zoom (clampView in init() re-fits it to the window).
         ViewCacheEntry saved = VIEW_CACHE.getIfPresent(viewKey());
         if (saved != null) { viewX = saved.x(); viewY = saved.y(); zoomLevel = saved.zoom(); }
@@ -262,6 +268,10 @@ public class FactoryControllerScreen extends AbstractSimiContainerScreen<Factory
         setWindowOffset(0, 0);
 
         super.init();
+        addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
+                Component.translatable("createfactorycontroller.dashboard.world_editor"), b ->
+                        minecraft.setScreen(new FactoryControllerInteractionScreen(menu, minecraft.player.getInventory(), title)))
+                .bounds(8, 8, 90, 20).build());
 
         clampView();   // window size changed → keep the pan inside the board
 
@@ -419,7 +429,7 @@ public class FactoryControllerScreen extends AbstractSimiContainerScreen<Factory
     }
 
     public void tickComponentWidgets() {
-        componentWidgets.values().forEach(VirtualComponentWidget::tick);
+        // Shared client cache owns one animation tick, including when a conventional form is open.
     }
 
     // ── Render ─────────────────────────────────────────────────────────────
@@ -1940,7 +1950,8 @@ public class FactoryControllerScreen extends AbstractSimiContainerScreen<Factory
         Map<VirtualComponentPosition, VirtualComponentWidget> previousWidgets = new LinkedHashMap<>(componentWidgets);
         componentWidgets.clear();
         for (VirtualComponentBehaviour b : menu.components) {
-            VirtualComponentWidget widget = ComponentWidgetRegistry.create(b, previousWidgets.get(b.position()));
+            VirtualComponentWidget previous = previousWidgets.get(b.position());
+            VirtualComponentWidget widget = previous != null && previous.behaviour() == b ? previous : ComponentWidgetRegistry.create(b, previous);
             if (widget != null) componentWidgets.put(b.position(), widget);
         }
         batchMove.reconcile(componentWidgets.keySet()).ifPresent(reconciled -> {
