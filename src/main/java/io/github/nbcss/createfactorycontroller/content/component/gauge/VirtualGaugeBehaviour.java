@@ -201,7 +201,7 @@ public class VirtualGaugeBehaviour extends AbstractVirtualComponent implements D
     /** Per-ingredient millibucket cap (90 B) — one grid cell of a fluid ingredient. */
     public static final int FLUID_INGREDIENT_CAP_MB = 90_000;
     /** Produced-output millibucket cap (10 B) for a fluid gauge — mirrors the recipe screen's output cap. */
-    public static final int FLUID_OUTPUT_CAP_MB = 10_000;
+    public static final int FLUID_OUTPUT_CAP_MB = 64_000;
     /** Crafting mode: max crafts one request may carry (batch × multiplier ≤ this). */
     public static final int MAX_CRAFT_OUTPUT = 64;
 
